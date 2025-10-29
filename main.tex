@@ -1,0 +1,172 @@
+% PhD Manuscript Main Document
+\documentclass[12pt,a4paper,oneside]{book}
+
+% ============================================
+% PACKAGES
+% ============================================
+
+% Page layout and margins
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+
+% Font encoding and language
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+
+% Graphics and figures
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+
+% Mathematics
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% Bibliography (using biblatex with biber backend)
+\usepackage[style=authoryear,backend=biber,maxcitenames=2,maxbibnames=99]{biblatex}
+\addbibresource{bibliography/references.bib}
+
+% Hyperlinks and references
+\usepackage[hidelinks]{hyperref}
+\usepackage{cleveref}
+
+% Line spacing
+\usepackage{setspace}
+\onehalfspacing
+
+% Headers and footers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\fancyhead[L]{\leftmark}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Other useful packages
+\usepackage{lipsum}  % For dummy text (remove in final version)
+\usepackage{enumitem}  % Better lists
+\usepackage{xcolor}  % Colors
+\usepackage{appendix}  % Better appendix handling
+
+% ============================================
+% DOCUMENT METADATA
+% ============================================
+
+\title{Title of Your PhD Manuscript}
+\author{Your Name}
+\date{\today}
+
+% Custom commands for your institution details
+\newcommand{\university}{Your University Name}
+\newcommand{\department}{Your Department}
+\newcommand{\supervisor}{Supervisor Name}
+\newcommand{\degree}{Doctor of Philosophy}
+
+% ============================================
+% DOCUMENT BEGINS
+% ============================================
+
+\begin{document}
+
+% Front matter (Roman numerals for page numbers)
+\frontmatter
+
+% Custom title page
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\LARGE\bfseries \@title \par}
+    \vspace{1.5cm}
+
+    {\Large by\par}
+    \vspace{0.5cm}
+
+    {\Large\bfseries \@author \par}
+    \vspace{2cm}
+
+    {\large A thesis submitted in partial fulfillment\\
+    of the requirements for the degree of\\
+    \degree \par}
+    \vspace{1cm}
+
+    {\large in\par}
+    \vspace{0.5cm}
+
+    {\large \department\\
+    \university \par}
+    \vspace{2cm}
+
+    {\large \@date \par}
+
+    \vfill
+\end{titlepage}
+
+% Abstract
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\input{chapters/abstract}
+
+% Acknowledgments (optional)
+\chapter*{Acknowledgments}
+\addcontentsline{toc}{chapter}{Acknowledgments}
+\input{chapters/acknowledgments}
+
+% Table of contents
+\tableofcontents
+
+% List of figures
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+
+% List of tables
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+
+% Main matter (Arabic numerals for page numbers)
+\mainmatter
+
+% Chapters
+\chapter{Introduction}
+\label{chap:introduction}
+\input{chapters/01_introduction}
+
+\chapter{Literature Review}
+\label{chap:literature}
+\input{chapters/02_literature_review}
+
+\chapter{Methodology}
+\label{chap:methodology}
+\input{chapters/03_methodology}
+
+\chapter{Results}
+\label{chap:results}
+\input{chapters/04_results}
+
+\chapter{Discussion}
+\label{chap:discussion}
+\input{chapters/05_discussion}
+
+\chapter{Conclusion}
+\label{chap:conclusion}
+\input{chapters/06_conclusion}
+
+% Back matter
+\backmatter
+
+% Bibliography
+\printbibliography[heading=bibintoc,title={References}]
+
+% Appendices
+\begin{appendices}
+\input{appendices/appendix_a}
+% Add more appendices as needed
+\end{appendices}
+
+\end{document}
