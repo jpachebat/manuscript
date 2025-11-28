@@ -11,7 +11,7 @@
 % Font encoding and language
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[english]{babel}
+\usepackage[english,french]{babel}  % French last = default, switch with \selectlanguage
 
 % Graphics and figures
 \usepackage{graphicx}
@@ -53,20 +53,31 @@
 \usepackage{enumitem}  % Better lists
 \usepackage{xcolor}  % Colors
 \usepackage{appendix}  % Better appendix handling
+\usepackage{xargs}  % For \newcommandx
+\usepackage{bbm}  % For \mathbbm (indicator function)
+\usepackage{stmaryrd}  % For \llbracket, \rrbracket
+\usepackage{bm}  % For \bm (bold math)
+\usepackage{nicefrac}  % For \nicefrac
+\usepackage{mathrsfs}  % For \mathscr
+\usepackage{pifont}  % For various symbols
+
+% Load custom macros
+\input{macros/def}
+\input{macros/commands}
 
 % ============================================
 % DOCUMENT METADATA
 % ============================================
 
-\title{Title of Your PhD Manuscript}
-\author{Your Name}
+\title{Structure-Preserving Generative Models:\\Extreme Values, Order Statistics, and Diffusion Fine-Tuning}
+\author{Jean Pachebat}
 \date{\today}
 
 % Custom commands for your institution details
-\newcommand{\university}{Your University Name}
-\newcommand{\department}{Your Department}
-\newcommand{\supervisor}{Supervisor Name}
-\newcommand{\degree}{Doctor of Philosophy}
+\newcommand{\university}{Institut Polytechnique de Paris}
+\newcommand{\department}{École Doctorale de Mathématiques Hadamard (EDMH)}
+\newcommand{\supervisor}{Emmanuel Gobet \& Alain Durmus}
+\newcommand{\degree}{Docteur de l'Institut Polytechnique de Paris}
 
 % ============================================
 % DOCUMENT BEGINS
@@ -78,6 +89,7 @@
 \frontmatter
 
 % Custom title page
+\makeatletter
 \begin{titlepage}
     \centering
     \vspace*{2cm}
@@ -107,6 +119,7 @@
 
     \vfill
 \end{titlepage}
+\makeatother
 
 % Abstract
 \chapter*{Abstract}
@@ -132,30 +145,43 @@
 % Main matter (Arabic numerals for page numbers)
 \mainmatter
 
-% Chapters
+% ============================================
+% CHAPTER 1: Introduction (English)
+% ============================================
+\selectlanguage{english}
 \chapter{Introduction}
 \label{chap:introduction}
 \input{chapters/01_introduction}
 
-\chapter{Literature Review}
-\label{chap:literature}
-\input{chapters/02_literature_review}
+% ============================================
+% CHAPTER 2: Introduction (French)
+% ============================================
+\selectlanguage{french}
+\chapter{Introduction (Version française)}
+\label{chap:introduction_fr}
+\input{chapters/02_introduction_fr}
 
-\chapter{Methodology}
-\label{chap:methodology}
-\input{chapters/03_methodology}
+% ============================================
+% CHAPTER 3: Heavy-Tailed GANs (HTGAN)
+% ============================================
+\selectlanguage{english}
+\chapter{Heavy-Tailed GANs for Extreme Value Generation}
+\label{chap:htgan}
+\input{chapters/03_htgan}
 
-\chapter{Results}
-\label{chap:results}
-\input{chapters/04_results}
+% ============================================
+% CHAPTER 4: Generative Neural Order Statistics (GENOS)
+% ============================================
+\chapter{Generative Neural Order Statistics}
+\label{chap:genos}
+\input{chapters/04_genos}
 
-\chapter{Discussion}
-\label{chap:discussion}
-\input{chapters/05_discussion}
-
-\chapter{Conclusion}
-\label{chap:conclusion}
-\input{chapters/06_conclusion}
+% ============================================
+% CHAPTER 5: Diffusion Fine-Tuning (FTDiffusion)
+% ============================================
+\chapter{Gradient-Free Fine-Tuning of Diffusion Models}
+\label{chap:ftdiffusion}
+\input{chapters/05_ftdiffusion}
 
 % Back matter
 \backmatter

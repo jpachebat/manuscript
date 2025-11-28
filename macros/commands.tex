@@ -1,0 +1,131 @@
+\newcommand{\newjp}[1]{\textcolor{cyan}{#1}}
+
+\newcommand \comment[1]{{\color{orange}[#1]}}
+\newcommand \new[1]{{\color{blue}#1}}
+\newcommand \review[1]{{\color{orange}#1}}
+
+\newcommand{\todojp}[1]{\todo[backgroundcolor=yellow!20!white,inline]{#1}}
+\newcommand{\red}[1]{{\color{red} #1}}
+\newcommand \bleu[1]{{\color{blue}#1}} 
+\definecolor{darkblue}{rgb}{0,0,.4}
+\newcommand \ok[1]{{\color{darkblue}#1}} % le texte qui est validé
+\newcommand \nch[1]{{\color{orange}#1}} % pour reperer les chgts d'Emmanuel
+
+% Algorithmic compatibility
+\providecommand{\State}{\STATE}
+
+\renewcommand{\P}{{\mathbb{P}}}
+
+\newcommand{\ve}{\varepsilon}
+\newcommand{\eqdist}{\overset{d}{=}}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\calR}{\mathcal{R}} % or use \mathcal{R} in the body
+
+% Abbreviations
+\newcommand\stdf{stdf\;}
+
+\newcommand\df{$df$}
+\newcommand\lit{\textit{l}\;}
+
+%\newcommand{\N}[1]{\mathbb{N}^{#1}}
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\P}{\mathbb{P}}
+%\newcommand{\R}[1]{\mathbb{R}^{#1}}
+\newcommand \du{\dd u}
+\newcommand \dv{\dd v}
+\newcommand \dx{\dd x}
+\newcommand \dy{\dd y}
+
+\newcommand{\KL}{\mathrm{KL}}
+
+\newcommand{\mathbi}[1]{\textbf{\textit{#1}} }
+\newcommand{\an}{\mathbi{a}_n}
+\newcommand{\bn}{\mathbi{b}_n}
+\renewcommand{\at}{\mathbi{a}_t}  % Override babel's \at
+\newcommand{\abf}{\mathbi{a}}
+\newcommand{\bbf}{\mathbi{b}}
+\newcommand{\ei}{\mathbi{e}_i}
+\newcommand{\mbf}{\mathbi{m}}
+\newcommand{\Mbf}{\mathbi{M}}
+\newcommand{\Mn}{\mathbi{M}_n}
+\newcommand{\ubf}{\mathbi{u}}
+\newcommand{\xbf}{\mathbi{x}}
+\newcommand{\Zbf}{\mathbi{Z}}
+\newcommand{\Gbf}{{\boldsymbol{\Gamma}}}
+\newcommand{\alphabf}{\boldsymbol{\alpha}}
+\newcommand{\Ubf}{\mathbi{U}}
+\newcommand{\Xbf}{\mathbi{X}}
+\newcommand{\Ybf}{\mathbi{Y}}
+\newcommand{\Ibf}{\mathbi{I}}
+
+\newcommand{\ombf}{\boldsymbol{\omega}}
+\newcommand{\gammabf}{\boldsymbol{\gamma}}
+\newcommand{\zeros}{\mathbf{0}}
+\newcommand{\ones}{\mathbf{1}}
+\newcommand{\albf}{\boldsymbol{\alpha}}
+\newcommand{\nubf}{\boldsymbol{\nu}}
+\newcommand{\thetabf}{\boldsymbol{\theta}}
+\newcommand{\Hbb}{\mathbb{H}}
+\newcommand{\Ccal}{\mathcal{C}}
+\newcommand{\Dcal}{\mathcal{D}}
+\newcommand{\Gcal}{\mathcal{G}}
+\newcommand{\Xcal}{\mathcal{X}}
+\newcommand{\Ycal}{\mathcal{Y}}
+\newcommand{\Thetabf}{\boldsymbol{\Theta}}
+\newcommand{\alphabb}{\boldsymbol{\alpha}}
+
+
+
+%\newcommand{\mda}[1]{\mathcal{D}\left(#1\right)}
+\newcommand{\mda}[1]{\mathrm{Dom}\left(#1\right)}
+\newcommand{\tendsto}[1]{\underset{#1}{\longrightarrow}}
+\newcommand{\asc}{\overset{\mbox{\em a.s.}}{\longrightarrow}}
+\newcommand \ndata{{n_{\rm data}}}
+\newcommand \nsample{{n_{\rm sample}}}
+\newcommand \pdata{{p_{\rm data}}}
+\newcommand \ake{\sc ake}
+
+% Figure caption helpers (customizable by \renewcommand)
+\newcommand{\twodOverlayCaption}{Overlay of real and generated (mean--scale). \texttt{n\_samples=1,000}.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Diffusion model notation (aligned with ICLR 2026 paper)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Schedule functions
+\newcommand{\alphat}{\alpha_t}
+\newcommand{\sigmat}{\sigma_t}
+\newcommand{\alphas}{\alpha_s}
+\newcommand{\sigmas}{\sigma_s}
+
+% Denoiser and noise predictor
+\newcommand{\denoiser}[2]{\hat{x}_0^{#1}(#2)}  % \denoiser{\theta}{x_t, t}
+\newcommand{\noisepred}[2]{\hat{x}_1^{#1}(#2)} % \noisepred{\theta}{x_t, t}
+
+% Score function
+\newcommand{\score}[2]{s^{#1}(#2)}  % \score{\theta}{x_t, t}
+
+% Forward kernel
+\newcommand{\fwdkernel}{q_{t|0}}
+
+% DDIM variance schedule
+\newcommand{\etat}{\eta_t}
+\newcommand{\etas}{\eta_s}
+
+% Base and tilted distributions
+\newcommand{\pbase}{p_0^{\mathrm{b}}}
+\newcommand{\ptilt}[1]{p_0^{#1}}  % \ptilt{\beta r} for tilted distribution
+\newcommand{\pmargin}[1]{p_{#1}}  % \pmargin{t} for marginal at time t
+
+% Iterative tilting notation
+\newcommand{\piter}[1]{p_0^{#1:N}}  % \piter{k} for k-th iterative tilt
+\newcommand{\pitermargin}[2]{p_{#1}^{#2:N}}  % \pitermargin{t}{k} for marginal
+
+% Normalising constant
+\newcommand{\normconst}[1]{Z_{#1}}
+
+% Covariance operator
+\newcommand{\Cov}{\mathrm{Cov}}
+
+% IID sampling notation
+\newcommand{\simiid}{\overset{\mathrm{iid}}{\sim}}

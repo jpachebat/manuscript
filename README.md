@@ -22,7 +22,6 @@ manuscript/
 │   └── references.bib
 ├── figures/                    # Figure files (PDF, PNG, JPG, etc.)
 ├── tables/                     # Table data files (if separate)
-├── MANUSCRIPT_PLAN.md          # Planning and progress tracking
 └── README.md                   # This file
 ```
 
@@ -220,17 +219,6 @@ grep "undefined" main.log
 biber main --tool --validate-datamodel
 ```
 
-## Planning & Progress Tracking
-
-Use `MANUSCRIPT_PLAN.md` to:
-- Track your writing progress
-- Manage chapter-by-chapter todos
-- Record supervisor feedback
-- Follow best practices
-- Maintain motivation
-
-Update it regularly to stay organized!
-
 ## Git Workflow
 
 ### Initial Setup (if not already done)
@@ -263,7 +251,6 @@ git log --oneline
 - All `.tex` files
 - `.bib` files
 - Figure source files
-- `MANUSCRIPT_PLAN.md` updates
 
 **Don't commit:**
 - `*.pdf` (except final submission)
@@ -352,7 +339,6 @@ sudo apt-get install texlive-latex-extra texlive-fonts-extra
 - [TeX Stack Exchange](https://tex.stackexchange.com/)
 
 ### Writing Resources
-- See the **Best Practices** section in `MANUSCRIPT_PLAN.md`
 - [How to Write a Thesis](https://www.ece.ucdavis.edu/~jowens/commonerrors.html)
 - [The Elements of Style](https://www.amazon.com/Elements-Style-Fourth-William-Strunk/dp/020530902X)
 

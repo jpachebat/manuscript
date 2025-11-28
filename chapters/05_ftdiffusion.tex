@@ -1,0 +1,47 @@
+% Chapter 5: Gradient-Free Fine-Tuning of Diffusion Models
+% Based on: FTDiffusion paper (in preparation)
+% Authors: Jean Pachebat, Alain Durmus, et al.
+% ----------------------------------------------------------------------
+
+% TODO: Import content from ~/proj/ftdiffusion/tex/
+
+% Placeholder structure based on the paper:
+
+\section{Introduction}
+% Context: fine-tuning diffusion models with reward functions
+% Gap: backprop through reward is expensive (memory, compute)
+% Contribution: gradient-free iterative tilting via Fisher's identity
+
+\section{Background on Diffusion Models}
+% Forward/reverse SDE
+% Score function and score matching
+% Fine-tuning objective: sample from p(x) ∝ p_0(x) exp(β r(x))
+
+\section{The Fine-Tuning Challenge}
+% Naive approach: ∇ log p = ∇ log p_0 + β ∇r
+% Problem: ∇r requires backprop through reward model
+% Existing methods: DRaFT, adjoint matching (require gradients)
+
+\section{Iterative Tilting}
+% Key insight: Fisher's identity for tilted score
+% Covariance estimation via Monte Carlo (forward evals only)
+% Decomposition into N small tilt steps
+
+\section{Theoretical Analysis}
+% Proposition: score of tilted distribution via Fisher identity
+% Corollary: O(1/N²) error per tilt step
+% Total error accumulation
+
+\section{Algorithm}
+% Iterative training procedure
+% Warm start from previous network
+% Practical considerations (σ²_t weighting)
+
+\section{Experiments}
+% Controlled setting: 2D Gaussian mixtures
+% Ground truth scores available
+% Score RMSE tracking across iterations
+% Convergence with varying N
+
+\section{Conclusion}
+

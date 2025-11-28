@@ -1,58 +1,278 @@
 % Chapter 1: Introduction
+% Target length: 10-15 pages
+% ----------------------------------------------------------------------
 
-\section{Background and Motivation}
-\label{sec:intro-background}
+\section{Context and Motivation}
+% TARGET: ~2 pages
+% GOAL: Accessible opener — a mathematician outside your field should follow
 
-% Introduce the general field and context
-% Explain why this research is important
+% --- Para 1: Etymology and the question of structure (~0.5 page) ---
+% - The word "statistics" comes from German "Statistik" (Achenwall, 1748)
+%   meaning "science of the state" — from Latin "status" (state, condition)
+% - Original meaning: structured inventory of a nation's resources (census, population, trade)
+% - The German tradition: "le goût ordonné" — imposing order on observations
+% - Key insight: statistics was never just about *collecting* data, but about
+%   *organizing* it — recognizing and preserving structure
+% \newjp{Citer: Achenwall, histoire des statistiques}
 
-\section{Research Problem}
-\label{sec:intro-problem}
+% --- Para 2: Modern generative modeling (~0.5 page) ---
+% - Today: machines learn to *generate* synthetic data (images, text, molecules...)
+% - Two dominant paradigms: GANs (adversarial), Diffusion models (score-based)
+% - Remarkable empirical success — but what structure do they preserve?
+% - A generated image "looks real" — but does it respect the *mathematical structure*
+%   of the underlying phenomenon?
+% \newjp{Citer: Goodfellow 2014 (GANs), Ho et al. 2020 (DDPM), Song \& Ermon (score matching)}
 
-% Clearly state the problem you are addressing
-% What gap in knowledge does this fill?
+% --- Para 3: The problem — when structure matters (~0.5 page) ---
+% - Some data has structure that standard generative models ignore:
+%   * Financial returns have heavy tails → extreme events, tail dependence
+%   * Ranked data must preserve ordering → order statistics constraints
+%   * Aligned models must satisfy preferences → reward-tilted distributions
+% - Standard GANs/diffusions: universal approximators, but blind to these structures
+% - Question: Can we design generative models that *provably* respect
+%   mathematical constraints — that preserve the "order" in our observations?
 
-\section{Research Questions and Objectives}
-\label{sec:intro-objectives}
+% --- Para 4: This thesis (~0.5 page) ---
+% - This manuscript develops *theory-guided generative methods* for three structural regimes
+% - Common thread: classical probability theory (EVT, order statistics, exponential tilting)
+%   meets modern deep generative modeling
+% - We provide approximation guarantees, not just empirical validation
+% - In the spirit of the original Statistik: not just generating data,
+%   but generating *structured* data — organized, ordered, faithful to mathematical laws
+% - Applications: financial risk, impact investing, model alignment
+% \newjp{Mentionner le contexte: thèse CIFRE? Chaire BNP? Applications finance?}
 
-The main research questions addressed in this thesis are:
 
-\begin{enumerate}
-    \item Research Question 1
-    \item Research Question 2
-    \item Research Question 3
-\end{enumerate}
+\section{Three Structural Regimes}
+% TARGET: ~3-4 pages
+% GOAL: Present the three problems — what structure, why it matters, why NNs fail
 
-The corresponding objectives are:
+  \subsection{Extreme Values and Tail Dependence}
+  % TARGET: ~1-1.5 pages
+  % MAPS TO: Chapter 2 (HTGAN)
 
-\begin{itemize}
-    \item Objective 1
-    \item Objective 2
-    \item Objective 3
-\end{itemize}
+  % --- The problem (~0.5 page) ---
+  % - In risk management, extreme events matter most (VaR, stress testing)
+  % - Joint extremes: when one asset crashes, do others crash too? → tail dependence
+  % - Mathematically: captured by the *stable tail dependence function* (STDF)
+  % - Goal: generate synthetic data that reproduces tail dependence structure
+  % \newjp{Citer: Embrechts, Klüppelberg, Mikosch (Modelling Extremal Events)}
 
-\section{Contributions}
-\label{sec:intro-contributions}
+  % --- Why standard GANs fail (~0.5 page) ---
+  % - Standard GANs: Generator G: Z → X where Z ~ N(0,1) (light-tailed)
+  % - Neural networks are Lipschitz continuous
+  % - Key observation: Lipschitz map of light-tailed input = light-tailed output
+  % - → Cannot generate heavy-tailed data, cannot reproduce tail dependence
+  % - Need: heavy-tailed latent noise + theory to guide architecture
+  % \newjp{Inclure l'argument Lipschitz informellement}
 
-The main contributions of this thesis are:
 
-\begin{enumerate}
-    \item Contribution 1
-    \item Contribution 2
-    \item Contribution 3
-\end{enumerate}
+  \subsection{Order Statistics and Ranking Constraints}
+  % TARGET: ~1-1.5 pages
+  % MAPS TO: Chapter 3 (GENOS)
 
-\section{Thesis Structure}
-\label{sec:intro-structure}
+  % --- The problem (~0.5 page) ---
+  % - Impact investing: sort assets by ESG score, pair with returns
+  % - Data = order statistics: X_{1:n} ≤ X_{2:n} ≤ ... ≤ X_{n:n}
+  % - Goal: generate synthetic ranked data preserving joint distribution AND ordering
+  % - Applications: stress testing sorted portfolios, data augmentation
+  % \newjp{Citer: travaux sur impact investing, ESG}
 
-The remainder of this thesis is organized as follows:
+  % --- Why standard methods fail (~0.5 page) ---
+  % - Off-the-shelf GANs ignore ordering constraint
+  % - Standard normalization (per-coordinate min-max) *destroys* ordering structure
+  % - No existing theory: how well can NNs approximate order statistics?
+  % - Need: order-preserving architecture + approximation guarantees
+  % \newjp{Expliquer brièvement pourquoi normalisation casse l'ordre}
 
-\textbf{Chapter~\ref{chap:literature}} reviews the relevant literature...
 
-\textbf{Chapter~\ref{chap:methodology}} describes the methodology...
+  \subsection{Reward-Tilted Distributions and Model Fine-Tuning}
+  % TARGET: ~1-1.5 pages
+  % MAPS TO: Chapter 4 (FTDiffusion)
 
-\textbf{Chapter~\ref{chap:results}} presents the results...
+  % --- The problem (~0.5 page) ---
+  % - Given: pre-trained diffusion model with distribution p_0
+  % - Given: reward function r(x) (e.g., aesthetic score, safety, preference)
+  % - Goal: fine-tune to sample from tilted distribution p(x) ∝ p_0(x) exp(β r(x))
+  % - Applications: RLHF, image generation with preferences, alignment
+  % \newjp{Citer: RLHF literature, DPO, reward modeling}
 
-\textbf{Chapter~\ref{chap:discussion}} discusses the findings...
+  % --- Why standard fine-tuning is expensive (~0.5 page) ---
+  % - Naive approach: backpropagate through reward function
+  % - When r is a large pretrained model (ViT, LLM) → memory/compute prohibitive
+  % - Existing methods (DRaFT, adjoint matching) require reward gradients
+  % - Question: can we fine-tune *without* differentiating through the reward?
+  % - Need: gradient-free score estimation via Fisher's identity
+  % \newjp{Expliquer le coût du backprop à travers un gros modèle}
 
-\textbf{Chapter~\ref{chap:conclusion}} concludes the thesis and suggests future work...
+
+\section{Generative Modeling Background}
+% TARGET: ~2-3 pages
+% GOAL: Technical background — just enough to understand contributions
+
+\subsection{Generative Adversarial Networks}
+% TARGET: ~1 page
+% USED IN: HTGAN, GENOS
+
+% --- Core idea (~0.3 page) ---
+% - Two networks: Generator G, Discriminator D
+% - Minimax game: D tries to distinguish real vs fake, G tries to fool D
+% - At equilibrium: G generates samples from data distribution
+% \newjp{Équation minimax}
+
+% --- Variants (~0.3 page) ---
+% - WGAN: Wasserstein distance instead of JS divergence
+% - WGAN-GP: gradient penalty for stability
+% - Key property: universal approximation (with enough capacity)
+
+% --- Limitations relevant to this thesis (~0.3 page) ---
+% - No control over tail behavior
+% - No guarantees on structural properties (ordering, dependence)
+% - This thesis: modify architecture/training to enforce structure
+
+
+\subsection{Diffusion and Score-Based Models}
+% TARGET: ~1 page
+% USED IN: FTDiffusion
+
+% --- Core idea (~0.3 page) ---
+% - Forward process: gradually add noise to data (SDE)
+% - Reverse process: learn to denoise (requires score function ∇ log p_t)
+% - Score matching: train network to approximate score
+% \newjp{Équations forward/reverse SDE}
+
+% --- Key objects (~0.3 page) ---
+% - Score function s_θ(x,t) ≈ ∇_x log p_t(x)
+% - Denoising objective: predict clean data from noisy
+% - Sampling: simulate reverse SDE
+
+% --- Fine-tuning challenge (~0.3 page) ---
+% - To sample from tilted p ∝ p_0 exp(βr): need score of tilted distribution
+% - Naive: ∇ log p = ∇ log p_0 + β ∇r → requires ∇r
+% - This thesis: estimate score increment without ∇r
+
+
+\subsection{Universal Approximation and Its Limits}
+% TARGET: ~0.5 page
+% BRIDGE TO CONTRIBUTIONS
+
+% - UAT: neural networks can approximate any continuous function
+% - But: *what* are they approximating? At what cost (parameters, depth)?
+% - For structured data: need approximation results for specific function classes
+%   * STDF approximation (HTGAN)
+%   * Order statistics approximation (GENOS)
+%   * Score function approximation (FTDiffusion)
+% - This thesis provides such results
+
+
+\section{Contributions of This Thesis}
+% TARGET: ~3-4 pages
+% GOAL: Clear, informal statement of main results for each axis
+
+\subsection{Heavy-Tailed GANs for Extreme Value Generation}
+% TARGET: ~1-1.5 pages
+% CHAPTER 2: HTGAN
+
+% --- Key insight (~0.3 page) ---
+% - Replace Gaussian latent noise with heavy-tailed (Pareto/Fréchet) noise
+% - Generator output inherits heavy-tail property
+% - STDF of generated data is always *discrete* (finite atoms)
+
+% --- Main theoretical result (~0.5 page) ---
+% - Theorem (informal): Any STDF can be approximated within error ε
+%   using latent dimension N = O(ε^{-(d-1)})
+% - Achieved with single-layer ReLU network
+% - First approximation guarantee for tail dependence with GANs
+% \newjp{Énoncer Theorem 1 informellement}
+
+% --- Practical algorithm (~0.3 page) ---
+% - Marginal transformation to unit Fréchet
+% - Train GAN with Pareto input
+% - Inverse transform to original scale
+
+% --- Experiments (~0.3 page) ---
+% - Synthetic: Gumbel copula
+% - Real: S&P 500 financial data
+% - HTGAN outperforms light-tailed GAN on tail dependence metrics
+
+
+\subsection{Generative Neural Order Statistics}
+% TARGET: ~1-1.5 pages
+% CHAPTER 3: GENOS
+
+% --- Key insight (~0.3 page) ---
+% - Classical representations: Sukhatme (exponential spacings), Schucany (recursive)
+% - These decompose order statistics into simpler building blocks
+% - Neural network approximation can exploit these structures
+
+% --- Main theoretical result (~0.5 page) ---
+% - Theorem (informal): ReLU networks with O(ε^{-2} log(1/ε)) parameters
+%   can approximate order statistics of n iid uniforms
+%   within O(ε log n) expected L1 error
+% - Sukhatme representation is key: concentrates nonlinearity in F and F^{-1}
+% \newjp{Énoncer le théorème d'approximation informellement}
+
+% --- Practical contributions (~0.3 page) ---
+% - Global mean-scale normalization (preserves ordering, unlike per-coordinate)
+% - WGAN-OSP: order statistics penalty for enforcing sortedness
+% - Trade-off: sortedness (85% → 99%) with minimal Wasserstein cost
+
+% --- Experiments (~0.3 page) ---
+% - Synthetic order statistics, varying dimension
+% - Metrics: W1D, SWD, Spearman, Kendall, sortedness
+
+
+\subsection{Gradient-Free Fine-Tuning of Diffusion Models}
+% TARGET: ~1-1.5 pages
+% CHAPTER 4: FTDiffusion
+
+% --- Key insight (~0.3 page) ---
+% - Fisher's identity: score of tilted distribution involves *covariance*, not gradient
+% - Cov(∇ log q_{t|0}, r) can be estimated via Monte Carlo with only forward evals of r
+% - No backprop through reward function needed
+
+% --- Method: Iterative Tilting (~0.5 page) ---
+% - Decompose target tilt into N small steps
+% - At each step k: train score network to match previous score + covariance correction
+% - Error per step: O(1/N²), accumulates to O(1/N) total
+% \newjp{Expliquer l'idée de décomposition}
+
+% --- Theoretical guarantee (~0.3 page) ---
+% - Proposition: First-order score approximation via Fisher identity
+% - Corollary: O(1/N²) error per tilt step
+% - Practical: N = 50-100 tilts sufficient for good approximation
+
+% --- Experiments (~0.3 page) ---
+% - Controlled setting: 2D Gaussian mixtures (ground truth available)
+% - Track score RMSE across iterations
+% - Validates convergence with increasing N
+
+
+\section{Organization of the Manuscript}
+% TARGET: ~1 page
+% GOAL: Roadmap for the reader
+
+% --- Chapter 2: Heavy-Tailed GANs (~0.3 page) ---
+% - Full development of HTGAN theory
+% - Propositions on STDF representation
+% - Main approximation theorem with proof
+% - Experiments on synthetic and financial data
+% \newjp{Préciser: based on paper [X] published/submitted at [venue]}
+
+% --- Chapter 3: Generative Neural Order Statistics (~0.3 page) ---
+% - Approximation theory via Sukhatme/Schucany representations
+% - WGAN-OSP algorithm and order-preserving normalization
+% - Experiments on synthetic order statistics
+% \newjp{Préciser: based on paper [X] published/submitted at [venue]}
+
+% --- Chapter 4: Iterative Tilting for Diffusion Fine-Tuning (~0.3 page) ---
+% - Fisher identity and gradient-free score estimation
+% - Iterative tilting algorithm
+% - Controlled experiments on Gaussian mixtures
+% \newjp{Préciser: based on paper [X] published/submitted at [venue]}
+
+% --- Appendices (if any) ---
+% - Technical proofs
+% - Additional experiments
+% - Code availability
+

@@ -1,0 +1,36 @@
+% Chapter 4: Generative Neural Order Statistics (GENOS)
+% Based on: GENOS paper (NeurIPS workshop / TMLR submission)
+% Authors: Jean Pachebat, Emmanuel Gobet, et al.
+% ----------------------------------------------------------------------
+
+% TODO: Import content from ~/proj/genos/tex/
+
+% Placeholder structure based on the paper:
+
+\section{Introduction}
+% Context: impact investing, ranked portfolios
+% Gap: standard GANs break ordering constraints
+% Contribution: approximation theory + WGAN-OSP
+
+\section{Background on Order Statistics}
+% Definition: X_{1:n} ≤ X_{2:n} ≤ ... ≤ X_{n:n}
+% Classical representations: Sukhatme, Schucany
+% Why ordering matters in applications
+
+\section{Neural Network Approximation of Order Statistics}
+% Sukhatme representation analysis
+% Schucany representation analysis
+% Main theorem: O(ε^{-2} log(1/ε)) parameters for O(ε log n) error
+
+\section{Practical Considerations}
+% Global mean-scale normalization (preserves ordering)
+% Why per-coordinate normalization fails
+% WGAN-OSP: order statistics penalty
+
+\section{Experiments}
+% Synthetic order statistics (varying dimension)
+% Metrics: W1D, SWD, Spearman, Kendall, sortedness
+% Trade-off analysis: sortedness vs distributional fidelity
+
+\section{Conclusion}
+
