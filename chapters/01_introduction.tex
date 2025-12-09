@@ -1,278 +1,406 @@
 % Chapter 1: Introduction
-% Target length: 10-15 pages
+% Target length: 15 pages
+% Structure follows the approved plan while respecting EDMH guidelines
 % ----------------------------------------------------------------------
 
 \section{Context and Motivation}
-% TARGET: ~2 pages
-% GOAL: Accessible opener — a mathematician outside your field should follow
+\label{sec:intro-context}
 
-% --- Para 1: Etymology and the question of structure (~0.5 page) ---
-% - The word "statistics" comes from German "Statistik" (Achenwall, 1748)
-%   meaning "science of the state" — from Latin "status" (state, condition)
-% - Original meaning: structured inventory of a nation's resources (census, population, trade)
-% - The German tradition: "le goût ordonné" — imposing order on observations
-% - Key insight: statistics was never just about *collecting* data, but about
-%   *organizing* it — recognizing and preserving structure
-% \newjp{Citer: Achenwall, histoire des statistiques}
+\subsection{Structure in Statistical Data}
+\label{sec:intro-structure}
 
-% --- Para 2: Modern generative modeling (~0.5 page) ---
-% - Today: machines learn to *generate* synthetic data (images, text, molecules...)
-% - Two dominant paradigms: GANs (adversarial), Diffusion models (score-based)
-% - Remarkable empirical success — but what structure do they preserve?
-% - A generated image "looks real" — but does it respect the *mathematical structure*
-%   of the underlying phenomenon?
-% \newjp{Citer: Goodfellow 2014 (GANs), Ho et al. 2020 (DDPM), Song \& Ermon (score matching)}
+The term \emph{statistics} derives from the German \emph{Statistik}, coined by Gottfried Achenwall in 1748 to denote the ``science of the state'': governing required organized information. Data is the raw material of statistics. A scientist measures temperature at several locations; a bank records daily returns of assets in a portfolio; a hospital collects patient vital signs. In each case, we have multiple observations, and each observation may consist of several related quantities. These quantities are organized in specific ways, governed by underlying regularities. Uncovering these regularities is the task of statistical science.
 
-% --- Para 3: The problem — when structure matters (~0.5 page) ---
-% - Some data has structure that standard generative models ignore:
-%   * Financial returns have heavy tails → extreme events, tail dependence
-%   * Ranked data must preserve ordering → order statistics constraints
-%   * Aligned models must satisfy preferences → reward-tilted distributions
-% - Standard GANs/diffusions: universal approximators, but blind to these structures
-% - Question: Can we design generative models that *provably* respect
-%   mathematical constraints — that preserve the "order" in our observations?
+This process admits a clear mathematical formulation. We denote $n$ observations by $X_1, \ldots, X_n$. Each $X_i$ is a \emph{vector}: a list of numbers representing the measured quantities. We assume these observations are governed by an underlying law. Mathematically, this law is a \emph{probability distribution}, which we denote $P$. The distribution specifies how likely each possible outcome is. It is unknown; learning about it is the central problem.
 
-% --- Para 4: This thesis (~0.5 page) ---
-% - This manuscript develops *theory-guided generative methods* for three structural regimes
-% - Common thread: classical probability theory (EVT, order statistics, exponential tilting)
-%   meets modern deep generative modeling
-% - We provide approximation guarantees, not just empirical validation
-% - In the spirit of the original Statistik: not just generating data,
-%   but generating *structured* data — organized, ordered, faithful to mathematical laws
-% - Applications: financial risk, impact investing, model alignment
-% \newjp{Mentionner le contexte: thèse CIFRE? Chaire BNP? Applications finance?}
+The goal of \emph{statistics} is to infer properties of $P$ from the observations: estimate its parameters, test hypotheses about its form, quantify uncertainty. The goal of \emph{generative modeling} is more ambitious: to produce new synthetic data that could plausibly have come from the same source, indistinguishable from genuine observations.
+
+But data carries \emph{structure}: dependencies between variables, constraints on their values, properties that define the phenomenon itself. A faithful generative model must respect this structure, not merely approximate the overall law.
+
+
+\subsection{Modern Generative Modeling}
+\label{sec:intro-genmod}
+
+Given data, can we learn to generate more of it? Not just compute averages, but produce new data that look as if they came from the same source? This is the question of \emph{generative modeling}.
+
+When observations have many components (temperatures at hundreds of locations, returns of thousands of assets), directly describing the law $P$ becomes impractical. Modern generative modeling takes a different path: rather than describing $P$ explicitly, we learn to produce data from it. The core idea is:
+\[
+    G(Z) \sim P.
+\]
+Here $Z$ is a source of randomness, like rolling dice or drawing from a bell curve. The transformation $G$ turns this randomness into something that resembles the data. All the complexity of the unknown law $P$ is encoded in $G$.
+
+This echoes a classical idea. A statistician assumes the data follow a known family of laws (bell curves, exponentials, etc.) and estimates a few numbers to pin down which one. A generative modeler makes a similar bet: instead of assuming the law has a certain shape, we assume the transformation $G$ does. When $G$ is a neural network, we bet that transforming randomness through layers of computations can mimic the data.
+
+The breakthrough of the past decade is that neural networks can learn $G$ from examples, producing images indistinguishable from photographs, text that reads as human-written. But the catch: neural networks learn $G$ by minimizing a global measure of error. This process has no mechanism to preserve specific structural properties.
+
+
+\subsection{The Problem: When Structure Matters}
+\label{sec:intro-problem}
+
+What does it mean for synthetic data to be \emph{faithful} to the phenomenon it imitates?
+
+Consider a bank generating fake crisis scenarios to test its investments. The generated scenarios look realistic on average, yet the worst losses occur in isolation: when stocks crash, bonds stay calm. The synthetic data capture each variable separately but miss how they move together. In a real crisis, losses are correlated. Or consider generating synthetic rankings: the third-best item sometimes scores higher than the first-best. The ranking is scrambled; the simulation is useless.
+
+These failures reflect a mismatch between what generative models optimize and what applications require. Standard models reward getting the overall shape right but provide no guarantees on specific structural properties.
+
+
+\subsection{This Thesis: Theory-Guided Generative Methods}
+\label{sec:intro-thesis}
+
+This manuscript starts from real-world problems where structure matters. We identify the key property that must be preserved (joint crashes, rankings, preferences), formulate it as a mathematical object, and analyze how well neural networks can approximate it. This is the core methodology: from applied problem, to mathematical abstraction, to theoretical analysis.
+
+We study three structural regimes: tail dependence, order statistics, and reward tilting. For each, we design generative methods that \emph{provably} respect the structure, providing guarantees on approximation accuracy.
 
 
 \section{Three Structural Regimes}
-% TARGET: ~3-4 pages
-% GOAL: Present the three problems — what structure, why it matters, why NNs fail
+\label{sec:intro-regimes}
 
-  \subsection{Extreme Values and Tail Dependence}
-  % TARGET: ~1-1.5 pages
-  % MAPS TO: Chapter 2 (HTGAN)
+We now describe the three structural regimes addressed in this thesis. For each regime, we present the real-world problem that motivates our work and formalize it mathematically.
 
-  % --- The problem (~0.5 page) ---
-  % - In risk management, extreme events matter most (VaR, stress testing)
-  % - Joint extremes: when one asset crashes, do others crash too? → tail dependence
-  % - Mathematically: captured by the *stable tail dependence function* (STDF)
-  % - Goal: generate synthetic data that reproduces tail dependence structure
-  % \newjp{Citer: Embrechts, Klüppelberg, Mikosch (Modelling Extremal Events)}
+\subsection{Extreme Values and Tail Dependence}
+\label{sec:intro-evt}
 
-  % --- Why standard GANs fail (~0.5 page) ---
-  % - Standard GANs: Generator G: Z → X where Z ~ N(0,1) (light-tailed)
-  % - Neural networks are Lipschitz continuous
-  % - Key observation: Lipschitz map of light-tailed input = light-tailed output
-  % - → Cannot generate heavy-tailed data, cannot reproduce tail dependence
-  % - Need: heavy-tailed latent noise + theory to guide architecture
-  % \newjp{Inclure l'argument Lipschitz informellement}
+\paragraph{The problem: when extremes drive everything.}
+In many domains, extreme events dominate outcomes despite their rarity. In portfolio management, a handful of large losses can wipe out years of steady gains: the distribution of returns is heavy-tailed, and risk is concentrated in the extremes \parencite{cont2001}. Value-at-Risk, stress testing, and regulatory capital requirements all hinge on the probability of rare but catastrophic losses. The 2008 financial crisis demonstrated that models calibrated to normal conditions fail when extremes occur \parencite{mcneil2015}.
+
+In insurance, extreme events are the core business. Reinsurers must price the risk of simultaneous catastrophes: a hurricane hitting Florida while an earthquake strikes California. The joint occurrence of such events, not their individual probabilities, determines solvency requirements. In climate science, compound extremes (concurrent heatwaves and droughts, sequential flooding events) pose the greatest risks to ecosystems and infrastructure \parencite{zscheischler2018,bevacqua2021}. Climate models must capture not just the frequency of individual extremes, but their tendency to cluster in space and time.
+
+The common thread is \emph{tail dependence}: the tendency for extremes to occur together. Two random variables can have zero correlation under normal conditions yet exhibit strong tail dependence: when one takes an extreme value, the other is likely to as well (see Figure~\ref{fig:tail-dependence}). For a portfolio manager, this means diversification fails precisely when it is needed most. For an insurer, it means correlated claims. For climate risk, it means compound disasters.
+
+\paragraph{Two distinct challenges.}
+Generating realistic extreme value data poses two fundamentally different challenges.
+
+The first is \emph{marginal heavy-tailedness}. A distribution is heavy-tailed when extreme values are far more likely than light-tailed models would predict. Figure~\ref{fig:heavy-tails} compares three distributions: the absolute Gaussian $|X|$, the exponential (both light-tailed), and the Pareto (heavy-tailed). Near zero they look similar, but their tails behave very differently. Table~\ref{tab:tail-probs} shows the probability of exceeding various thresholds. At $t=8$, the Gaussian assigns probability $10^{-15}$, the exponential $10^{-4}$, but the Pareto still gives $3.7\%$. Heavy-tailed phenomena produce extreme events that light-tailed models dismiss as virtually impossible.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/intro/heavy_tails.pdf}
+\caption[Light-tailed vs heavy-tailed distributions]{Light-tailed vs heavy-tailed distributions. Left: density comparison for $|$Gaussian$|$, exponential, and Pareto. Right: tail probability $\P(X > t)$ on log scale. The Gaussian and exponential tails decay rapidly; the Pareto tail decays as a power law, remaining substantial even for large $t$.}
+\label{fig:heavy-tails}
+\end{figure}
+
+\begin{table}[ht]
+\centering
+\caption[Tail probabilities comparison]{Probability of exceeding threshold $t$ for $|$Gaussian$|$ ($\sigma=1$), exponential ($\lambda=1$), and Pareto ($\alpha=1.5$).}
+\label{tab:tail-probs}
+\begin{tabular}{rcccc}
+\toprule
+$t$ & $|$Gaussian$|$ & Exponential & Pareto \\
+\midrule
+3  & $2.7 \times 10^{-3}$ & $5.0 \times 10^{-2}$ & $1.3 \times 10^{-1}$ \\
+5  & $5.7 \times 10^{-7}$ & $6.7 \times 10^{-3}$ & $6.8 \times 10^{-2}$ \\
+8  & $1.3 \times 10^{-15}$ & $3.4 \times 10^{-4}$ & $3.7 \times 10^{-2}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The second challenge is \emph{extremal dependence}: when multiple variables are involved, their joint behavior in the tails can be entirely different from their dependence in normal conditions. Figure~\ref{fig:tail-dependence} illustrates this: two samples with identical marginal distributions behave very differently in the tails depending on whether extremes occur together or independently.
+
+As we shall see in Section~\ref{sec:intro-sota-evt}, standard generative models fail on both counts.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/intro/tail_dependence.pdf}
+\caption[Tail dependence with Pareto margins]{Tail dependence illustrated with Pareto margins ($\alpha = 1.5$). Left: independent margins; extreme values of $X_1$ and $X_2$ occur independently, so the upper tail region (red box) is sparse. Right: Gumbel copula ($\theta = 2.5$) with upper tail dependence; when $X_1$ is extreme, $X_2$ tends to be extreme as well, creating clustering in the upper-right corner. Both samples have identical marginal distributions, yet behave very differently in the tails.}
+\label{fig:tail-dependence}
+\end{figure}
+
+\paragraph{Mathematical formulation: the stable tail dependence function.}
+In classical statistics, \emph{correlation} measures how two variables move together on average. Correlation summarizes dependence across the entire distribution but does not fully characterize tail behavior. Two variables can have zero correlation yet crash together in a crisis; conversely, variables with the same correlation can exhibit very different tail dependence structures.
+
+The \emph{stable tail dependence function} (stdf) plays for extremes the role that correlation plays for the bulk of the distribution. Just as correlation captures average co-movement, the stdf captures extreme co-movement: when one variable takes a very large value, how likely is the other to be large as well? For a random vector $\mathbf{X} = (X_1, \ldots, X_d)$, the stdf $\ell$ is defined by
+\begin{equation}
+    \ell(\mathbf{x}) = \lim_{t \to \infty} t \, \P\left( \bigcup_{j=1}^d \{X_j > t x_j\} \right).
+    \label{eq:stdf-def}
+\end{equation}
+This limit captures the asymptotic probability of joint exceedances as we move deeper into the tail. The stdf completely characterizes extremal dependence: two distributions with the same stdf exhibit identical behavior in extremes, regardless of how they behave in the bulk. Knowing the stdf is essential for understanding diversification when it matters most: during extreme events.
 
 
-  \subsection{Order Statistics and Ranking Constraints}
-  % TARGET: ~1-1.5 pages
-  % MAPS TO: Chapter 3 (GENOS)
+\subsection{Order Statistics and Ranking Constraints}
+\label{sec:intro-order}
 
-  % --- The problem (~0.5 page) ---
-  % - Impact investing: sort assets by ESG score, pair with returns
-  % - Data = order statistics: X_{1:n} ≤ X_{2:n} ≤ ... ≤ X_{n:n}
-  % - Goal: generate synthetic ranked data preserving joint distribution AND ordering
-  % - Applications: stress testing sorted portfolios, data augmentation
-  % \newjp{Citer: travaux sur impact investing, ESG}
+\paragraph{The problem: when ranking defines the data.}
+Many phenomena are defined by their rank structure. In auctions, what matters is the distribution of the highest bid, or the gap between the two highest bids. In sports, we care about the performance of the top-ranked player, not the average. In extreme value statistics, the $k$ largest observations are used to estimate tail behavior. In each case, the ordering is not incidental: it is the defining structure of the data.
 
-  % --- Why standard methods fail (~0.5 page) ---
-  % - Off-the-shelf GANs ignore ordering constraint
-  % - Standard normalization (per-coordinate min-max) *destroys* ordering structure
-  % - No existing theory: how well can NNs approximate order statistics?
-  % - Need: order-preserving architecture + approximation guarantees
-  % \newjp{Expliquer brièvement pourquoi normalisation casse l'ordre}
+Consider impact investing, where assets are ranked by environmental, social, or governance (ESG) scores \parencite{lo2021}. A fund manager backtesting an ESG strategy needs to simulate the returns of the best-ranked asset, the second-best, and so on. These are \emph{induced order statistics}: the returns $\Theta_{[1:N]}, \ldots, \Theta_{[N:N]}$ associated with assets ranked by their ESG scores $X_{1:N} \leq \cdots \leq X_{N:N}$. Synthetic data must preserve both the marginal distribution at each rank and the joint dependence across ranks.
+
+\paragraph{Mathematical formulation: order statistics and their joint density.}
+Given a sample $X_1, \ldots, X_n$ from a continuous distribution $F$ with density $f$, the \emph{order statistics} are the sorted values $X_{1:n} \leq X_{2:n} \leq \cdots \leq X_{n:n}$. Their joint density is
+\begin{equation}
+    f_{1:n, \ldots, n:n}(x_1, \ldots, x_n) = n! \prod_{i=1}^n f(x_i) \cdot \mathbf{1}\{x_1 \leq \cdots \leq x_n\}.
+    \label{eq:os-joint-density}
+\end{equation}
+The factor $n!$ counts the number of arrangements, and the indicator $\mathbf{1}\{\cdot\}$ enforces the ordering constraint. Classical representations, such as those of Sukhatme and Schucany, decompose order statistics into tractable building blocks that have enabled exact simulation for decades. As we shall see in Section~\ref{sec:intro-contrib-genos}, these representations also provide the foundation for neural network approximation with provable complexity bounds.
 
 
-  \subsection{Reward-Tilted Distributions and Model Fine-Tuning}
-  % TARGET: ~1-1.5 pages
-  % MAPS TO: Chapter 4 (FTDiffusion)
+\subsection{Reward-Tilted Distributions and Model Fine-Tuning}
+\label{sec:intro-tilt}
 
-  % --- The problem (~0.5 page) ---
-  % - Given: pre-trained diffusion model with distribution p_0
-  % - Given: reward function r(x) (e.g., aesthetic score, safety, preference)
-  % - Goal: fine-tune to sample from tilted distribution p(x) ∝ p_0(x) exp(β r(x))
-  % - Applications: RLHF, image generation with preferences, alignment
-  % \newjp{Citer: RLHF literature, DPO, reward modeling}
+\paragraph{The problem: aligning generative models with human preferences.}
+A pre-trained generative model produces samples from a distribution learned from training data. But for many applications, we want samples that are not merely typical, but \emph{good} according to some criterion: images that are aesthetically pleasing, text that is helpful and harmless, molecules that bind to a target protein. This is the \emph{alignment problem}: adjusting a generative model to favor high-quality outputs while maintaining diversity and coherence.
 
-  % --- Why standard fine-tuning is expensive (~0.5 page) ---
-  % - Naive approach: backpropagate through reward function
-  % - When r is a large pretrained model (ViT, LLM) → memory/compute prohibitive
-  % - Existing methods (DRaFT, adjoint matching) require reward gradients
-  % - Question: can we fine-tune *without* differentiating through the reward?
-  % - Need: gradient-free score estimation via Fisher's identity
-  % \newjp{Expliquer le coût du backprop à travers un gros modèle}
+Consider a text-to-image diffusion model trained on web-scraped images. The model generates realistic images, but many are poorly composed, contain artifacts, or depict undesirable content. We have access to a reward model (trained on human preferences) that scores images by aesthetic quality and safety. The goal is to fine-tune the diffusion model so that it preferentially generates high-reward images, without collapsing to a single mode or forgetting how to generate diverse content.
+
+\paragraph{Mathematical formulation: exponential tilting.}
+The natural mathematical formulation is \emph{exponential tilting}. Given a base distribution $p_0$ (the pre-trained model) and a reward function $r: \mathcal{X} \to \R$, the target is the \emph{tilted distribution}
+\begin{equation}
+    p(x) \propto p_0(x) \exp(\lambda \, r(x)),
+    \label{eq:tilted-dist}
+\end{equation}
+where $\lambda > 0$ controls the strength of the tilting. This distribution is the unique solution to the KL-regularized reward maximization problem:
+\[
+    p = \arg\max_q \left\{ \E_q[r(x)] - \frac{1}{\lambda} \mathrm{KL}(q \| p_0) \right\}.
+\]
+The tilted distribution balances reward maximization against staying close to the pre-trained model, with $\lambda$ controlling the trade-off. Large $\lambda$ favors high reward; small $\lambda$ stays close to $p_0$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/intro/reward_tilting.pdf}
+\caption[Reward tilting of a Gaussian distribution]{Reward tilting shifts the distribution toward high-reward regions. With $p_0 = \mathcal{N}(2, 1)$, linear reward $r(x) = x$, and tilting strength $\lambda = 1.5$, the tilted distribution $p(x) \propto p_0(x) \exp(\lambda r(x))$ is $\mathcal{N}(3.5, 1)$: the mean shifts by $\lambda\sigma^2 = 1.5$ toward high reward, while the variance is unchanged.}
+\label{fig:reward-tilting}
+\end{figure}
 
 
 \section{Generative Modeling Background}
-% TARGET: ~2-3 pages
-% GOAL: Technical background — just enough to understand contributions
+\label{sec:intro-background}
+
+Section~\ref{sec:intro-context} introduced the goal of learning from data while respecting structure. Section~\ref{sec:intro-regimes} presented three regimes where structure matters: tail dependence, order statistics, and reward tilting. To address these challenges, we turn to generative modeling: the task of producing synthetic data that follows the same law as the observations. This section provides the technical background on generative models and neural network approximation theory necessary to understand the contributions of this thesis.
+
+\subsection{The Problem of Generative Modeling}
+\label{sec:intro-genmod-problem}
+
+The fundamental problem of generative modeling can be stated as follows: given samples $X_1, \ldots, X_n$ drawn independently from an unknown distribution $P$ on $\R^d$, construct a procedure for generating new samples that are distributed according to $P$, or a close approximation thereof.
+
+This problem has a long history in statistics and probability. Classical approaches include \emph{density estimation} \parencite{silverman1986,scott2015}, where one estimates the density $p = dP/d\lambda$ and then samples from the estimated density, and \emph{Markov Chain Monte Carlo} (MCMC) \parencite{metropolis1953,hastings1970,robert2004}, where one constructs a Markov chain with $P$ as its stationary distribution and samples by running the chain to equilibrium. Both approaches face the curse of dimensionality \parencite{bellman1961}: density estimation becomes statistically intractable in high dimensions, while MCMC mixing times can grow exponentially with dimension.
+
+The modern approach to generative modeling, enabled by deep learning, takes a different path. Rather than explicitly estimating the density, we learn a \emph{transport map} $G$ that transforms samples from a simple reference distribution (typically standard Gaussian) into samples from the target distribution. If $Z$ is Gaussian noise, then $G(Z)$ should be distributed approximately as $P$. The map $G$ is parameterized by a neural network, and the parameters are learned from data.
+
+This transport-based view unifies several modern generative paradigms. In \emph{normalizing flows} \parencite{rezende2015,dinh2017}, the map $G$ is constrained to be invertible with tractable Jacobian. In \emph{variational autoencoders} (VAEs) \parencite{kingma2014}, the map is learned jointly with an approximate inverse. In \emph{generative adversarial networks} (GANs) \parencite{goodfellow2014}, the map is learned via an adversarial objective. In \emph{diffusion models} \parencite{ho2020,song2021}, the map is implicitly defined by the reverse of a noising process. We describe GANs and diffusion models in detail below, as they are the foundations of our contributions.
+
+
+\subsection{Neural Networks}
+\label{sec:intro-nn}
+
+A \emph{feedforward neural network} with $L$ hidden layers transforms an input $x$ through successive layers (Figure~\ref{fig:neural-network}). Denoting $h_0 = x$, the hidden representations are
+\begin{equation}
+    h_\ell = \sigma(W_\ell h_{\ell-1} + b_\ell) \quad \text{for } \ell = 1, 2, \ldots, L,
+    \label{eq:nn-layer}
+\end{equation}
+where $W_\ell$ is a weight matrix, $b_\ell$ a bias vector, and $\sigma$ a nonlinear activation function applied coordinate-wise. The output is $g(x) = W_{L+1} h_L + b_{L+1}$. Common activations include the sigmoid, tanh, and ReLU $\sigma(t) = \max(0, t)$, which dominates modern practice.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/intro/neural_network.pdf}
+\caption[Feedforward neural network architecture]{A feedforward neural network. The input $h_0 = x$ passes through $L$ hidden layers, each applying an affine transformation followed by activation $\sigma$. The output $g(x)$ is a linear function of $h_L$.}
+\label{fig:neural-network}
+\end{figure}
+
+
+\subsection{Neural Network Approximation Theory}
+\label{sec:intro-uat}
+
+The \emph{universal approximation theorem} \parencite{cybenko1989,hornik1989} states that neural networks with a single hidden layer can approximate any continuous function on a compact domain to arbitrary accuracy, given sufficient width. This extends to ReLU networks \parencite{leshno1993}.
+
+\paragraph{Quantitative bounds.}
+Quantitative bounds relate approximation error to network size \parencite{barron1993,yarotsky2017}. For Lipschitz functions on $[0,1]^d$, achieving error $\varepsilon$ requires $O(\varepsilon^{-d})$ parameters, exhibiting the curse of dimensionality. For smoother functions (H\"older class with smoothness $s$), networks with $O(\varepsilon^{-d/s})$ parameters suffice \parencite{yarotsky2017}.
+
+\paragraph{Limitations.}
+These theorems concern pointwise function approximation, not preservation of distributional structure. A network approximating a transport map $G$ uniformly may still fail to preserve tail behavior, ordering constraints, or dependence structure. Moreover, the theorems assume optimal parameters are known; in practice, gradient descent may not find them. These limitations motivate the structure-specific theory developed in this thesis.
+
 
 \subsection{Generative Adversarial Networks}
-% TARGET: ~1 page
-% USED IN: HTGAN, GENOS
+\label{sec:intro-gan}
 
-% --- Core idea (~0.3 page) ---
-% - Two networks: Generator G, Discriminator D
-% - Minimax game: D tries to distinguish real vs fake, G tries to fool D
-% - At equilibrium: G generates samples from data distribution
-% \newjp{Équation minimax}
+Generative Adversarial Networks \parencite{goodfellow2014} frame generative modeling as a two-player game. The intuition is best understood through an analogy: imagine a counterfeiter trying to produce fake banknotes, and a detective trying to detect them. The counterfeiter improves by studying which fakes get caught; the detective improves by studying the counterfeiter's latest techniques. Over time, both become more sophisticated, until eventually the counterfeiter produces notes so convincing that even the expert detective cannot tell them apart from genuine currency.
 
-% --- Variants (~0.3 page) ---
-% - WGAN: Wasserstein distance instead of JS divergence
-% - WGAN-GP: gradient penalty for stability
-% - Key property: universal approximation (with enough capacity)
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/intro/gan_framework.pdf}
+\caption[GAN framework as adversarial game]{The GAN framework as an adversarial game. The generator (counterfeiter) transforms noise into fake samples; the discriminator (detective) tries to distinguish fakes from real data. Both networks improve through competition until equilibrium, when generated samples are indistinguishable from real data.}
+\label{fig:gan-analogy}
+\end{figure}
 
-% --- Limitations relevant to this thesis (~0.3 page) ---
-% - No control over tail behavior
-% - No guarantees on structural properties (ordering, dependence)
-% - This thesis: modify architecture/training to enforce structure
+In mathematical terms, a \emph{generator} $G_\theta: \mathcal{Z} \to \mathcal{X}$ maps latent noise $Z \sim p_Z$ to synthetic samples (the counterfeiter's output). A \emph{discriminator} $D_\phi: \mathcal{X} \to [0,1]$ attempts to distinguish real samples from generated ones (the detective's verdict). The networks are trained by solving a minimax problem:
+\[
+    \min_\theta \max_\phi \; \E_{X \sim p_{\mathrm{data}}}[\log D_\phi(X)] + \E_{Z \sim p_Z}[\log(1 - D_\phi(G_\theta(Z)))].
+\]
+The generator minimizes this objective (trying to fool the discriminator), while the discriminator maximizes it (trying to correctly classify real vs.\ fake). At equilibrium, the generator produces samples from the data distribution, and the discriminator outputs $1/2$ for all inputs, unable to distinguish real from fake.
+
+The Wasserstein GAN (WGAN) \parencite{arjovsky2017} replaces the Jensen-Shannon divergence with the Wasserstein-1 distance:
+\[
+    W_1(p_{\mathrm{data}}, p_\theta) = \sup_{\|f\|_L \leq 1} \E_{X \sim p_{\mathrm{data}}}[f(X)] - \E_{Z \sim p_Z}[f(G_\theta(Z))],
+\]
+where the supremum is over 1-Lipschitz functions. The WGAN with gradient penalty (WGAN-GP) \parencite{gulrajani2017} enforces the Lipschitz constraint via a penalty term, improving training stability.
 
 
 \subsection{Diffusion and Score-Based Models}
-% TARGET: ~1 page
-% USED IN: FTDiffusion
+\label{sec:intro-diffusion}
 
-% --- Core idea (~0.3 page) ---
-% - Forward process: gradually add noise to data (SDE)
-% - Reverse process: learn to denoise (requires score function ∇ log p_t)
-% - Score matching: train network to approximate score
-% \newjp{Équations forward/reverse SDE}
+Diffusion models \parencite{ho2020,song2021} define a generative process by constructing a continuous path $(p_t)_{t \in [0,1]}$ between the data distribution $p_0$ and a tractable reference $p_1 = \mathrm{N}(0, \mathrm{I}_d)$. The path is defined via the \emph{forward interpolation}
+\begin{equation}
+    X_t = \alpha_t X_0 + \sigma_t X_1, \quad X_0 \sim p_0, \quad X_1 \sim \mathrm{N}(0, \mathrm{I}_d),
+    \label{eq:diffusion-forward}
+\end{equation}
+where $(\alpha_t, \sigma_t)$ are deterministic schedules with $(\alpha_0, \sigma_0) = (1, 0)$ and $(\alpha_1, \sigma_1) = (0, 1)$. At $t = 0$, we have clean data; at $t = 1$, pure noise. Standard choices include the variance-preserving schedule ($\alpha_t^2 + \sigma_t^2 = 1$) and the linear schedule ($\alpha_t = 1 - t$, $\sigma_t = t$).
 
-% --- Key objects (~0.3 page) ---
-% - Score function s_θ(x,t) ≈ ∇_x log p_t(x)
-% - Denoising objective: predict clean data from noisy
-% - Sampling: simulate reverse SDE
+To generate samples, we reverse this process. The key quantity is the \emph{score function} $\nabla_x \log p_t$, which points toward regions of high density at each noise level. For the Gaussian forward kernel, the score satisfies $\nabla_x \log p_t(x_t) = -\hat{x}_1(x_t, t)/\sigma_t$, where $\hat{x}_1(x_t, t) = \mathbb{E}[X_1 \mid X_t = x_t]$ is the conditional expectation of the noise given the noised sample.
 
-% --- Fine-tuning challenge (~0.3 page) ---
-% - To sample from tilted p ∝ p_0 exp(βr): need score of tilted distribution
-% - Naive: ∇ log p = ∇ log p_0 + β ∇r → requires ∇r
-% - This thesis: estimate score increment without ∇r
+The score is learned via \emph{denoising score matching} \parencite{hyvarinen2005,vincent2011}: a network $s_\theta(x, t)$ is trained to predict the noise $X_1$ from the noised sample $X_t$, which is equivalent to learning $\nabla_x \log p_t$. Starting from $X_1 \sim \mathrm{N}(0, \mathrm{I}_d)$ and iteratively denoising using the learned score yields samples from $p_0$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{figures/intro/diffusion_process.pdf}
+\caption[Diffusion model framework on a Gaussian mixture]{The diffusion model framework on a 2D Gaussian mixture. Forward process (top row): data from $p_0$ is progressively corrupted by adding noise until it becomes indistinguishable from the Gaussian reference $p_1$ at $t=1$. Reverse process (bottom row): starting from pure noise, a learned score network $s_\theta$ guides the denoising, gradually recovering the bimodal structure of $p_0$ at $t=0$.}
+\label{fig:diffusion-process}
+\end{figure}
 
 
-\subsection{Universal Approximation and Its Limits}
-% TARGET: ~0.5 page
-% BRIDGE TO CONTRIBUTIONS
+\section{State of the Art and Open Problems}
+\label{sec:intro-sota}
 
-% - UAT: neural networks can approximate any continuous function
-% - But: *what* are they approximating? At what cost (parameters, depth)?
-% - For structured data: need approximation results for specific function classes
-%   * STDF approximation (HTGAN)
-%   * Order statistics approximation (GENOS)
-%   * Score function approximation (FTDiffusion)
-% - This thesis provides such results
+We now review the state of the art for each structural regime, identify the gaps in the existing literature, and formulate the objectives of this thesis.
+
+\subsection{Extreme Value Generation}
+\label{sec:intro-sota-evt}
+
+\paragraph{Classical extreme value theory.}
+The statistical theory of multivariate extremes is well-developed \parencite{embrechts1997,haan2006,resnick1987}. For univariate extremes, the Fisher-Tippett-Gnedenko theorem establishes that properly normalized maxima converge to one of three distributions: Gumbel, Fr\'echet, or Weibull, unified by the Generalized Extreme Value (GEV) distribution. In the multivariate setting, the stable tail dependence function (stdf) provides a complete characterization of extremal dependence, describing how the probability of joint exceedances scales as one moves into the tail. Numerous parametric models have been proposed: the Gumbel (logistic) copula \parencite{gumbel1960}, the H\"usler-Reiss model arising from Gaussian processes \parencite{husler1989}, and the extremal-$t$ model generalizing the H\"usler-Reiss to Student-$t$ margins \parencite{nikoloulopoulos2009}. Estimation methods include empirical likelihood \parencite{einmahl2012}, rank-based M-estimation \parencite{einmahl2016}, and Bayesian approaches \parencite{sabourin2013}.
+
+\paragraph{Why standard GANs fail.}
+Standard generative models are fundamentally incompatible with heavy-tailed data. The reason is mathematical: \parencite{wiese2019} proved that if the latent distribution has light tails (e.g., Gaussian) and the generator $G$ is Lipschitz continuous, then the generated distribution $G(Z)$ necessarily has light tails. Specifically, if $Z$ is sub-Gaussian, then $G(Z)$ is sub-Gaussian for any Lipschitz $G$. Since modern GANs enforce Lipschitz constraints for training stability (spectral normalization, gradient penalties), they \emph{provably cannot} generate heavy-tailed outputs from Gaussian noise. This is not a failure of optimization or architecture; it is a fundamental impossibility.
+
+\paragraph{Heavy-tailed generative models.}
+Recent work has addressed this limitation through several approaches \parencite{allouche_chapterextreme}. For GANs: \emph{preprocessing methods} such as Quant-GAN \parencite{wiese2019} and evtGAN \parencite{boulaguiem2022} transform data to remove tail heaviness before training; \emph{heavy-tailed latent} methods \parencite{huster2021pareto} replace Gaussian noise with Pareto distributions; \emph{EVT-parameterized} approaches such as EV-GAN \parencite{allouche2022} design generators that explicitly encode extreme-value structure. For diffusion models, heavy-tailed extensions replace the Gaussian noise process with $\alpha$-stable L\'evy processes \parencite{yoon2023}, allowing direct generation of heavy-tailed samples. However, all these approaches focus on \emph{marginal} tail behavior. None addresses the \emph{dependence structure} in the tails, characterized by the stdf.
+
+\paragraph{Gap 1.} To our knowledge, no existing generative models provide provable guarantees on tail dependence approximation. Existing methods address marginal tail behavior but ignore the joint structure. We address this gap in Chapter~\ref{chap:htgan}, developing a GAN architecture that provably approximates any stdf.
+
+\subsection{Order Statistics Generation}
+\label{sec:intro-sota-order}
+
+The mathematical formulation of order statistics was given in Section~\ref{sec:intro-order}. Classical representations (Sukhatme, Schucany) have enabled exact simulation for decades \parencite{david2003,arnold2008}. We now review the state of the art.
+
+\paragraph{Machine learning approaches.}
+The machine learning literature has addressed sorting from the perspective of learning-to-rank \parencite{liu2009}, where the goal is to predict orderings rather than generate them. Differentiable sorting operators have been developed to enable gradient-based learning: \parencite{grover2019b} proposed NeuralSort, a continuous relaxation of the argsort operator based on the Sinkhorn algorithm; \parencite{cuturi2019} developed optimal transport-based differentiable sorting; \parencite{blondel2020} introduced fast differentiable sorting with $O(n \log n)$ complexity. These methods enable sorting within neural network pipelines but are designed for ranking tasks, not distribution matching.
+
+\paragraph{Generative models and ordering.}
+Standard generative models (GANs, VAEs, diffusion) produce unordered samples. When applied to ranked data, they face two problems. First, generated samples are not sorted: a GAN trained on order statistics will produce vectors where coordinates are not monotonically ordered. Post-hoc sorting can restore order but introduces bias in the distribution. Second, standard preprocessing destroys ordering structure: per-coordinate normalization to $[0,1]$, common in GAN training, normalizes each coordinate independently based on its marginal range, destroying the relative ordering. If the $k$-th order statistic is normalized by its own mean and variance, and the $(k+1)$-th by different values, there is no guarantee that normalized values remain sorted.
+
+\paragraph{Gap 2.} To our knowledge, no existing generative models produce order statistics with both correct marginal/joint distributions and guaranteed ordering constraints. Existing differentiable sorting methods address ranking prediction, not generative modeling. We address this gap in Chapter~\ref{chap:genos}, developing an architecture that exploits classical representations to guarantee sortedness while matching target distributions.
+
+\subsection{Reward-Tilted Generation}
+\label{sec:intro-sota-tilt}
+
+The alignment problem (Section~\ref{sec:intro-tilt}) requires sampling from the tilted distribution~\eqref{eq:tilted-dist}. We review existing approaches.
+
+\paragraph{Reinforcement learning from human feedback.}
+The dominant paradigm for alignment is reinforcement learning from human feedback (RLHF) \parencite{christiano2017,bai2022,ouyang2022}. A reward model is trained on human preference data (pairwise comparisons of outputs), then the generative model is fine-tuned to maximize expected reward using policy gradient methods (PPO, REINFORCE). RLHF has been transformative for large language models, enabling ChatGPT, Claude, and other conversational agents. However, RLHF is notoriously unstable: reward hacking, mode collapse, and catastrophic forgetting are common failure modes \parencite{casper2023}.
+
+\paragraph{Diffusion model fine-tuning.}
+For diffusion models, several fine-tuning approaches have emerged. DRaFT \parencite{clark2024} backpropagates through the full denoising chain to maximize reward, but this requires storing activations across all timesteps, with memory scaling linearly in chain length. DPOK \parencite{fan2023} combines policy gradients with KL regularization. ReFL \parencite{xu2024} uses reward feedback learning to fine-tune text-to-image diffusion models. Adjoint matching \parencite{domingo-enrich2025} provides a theoretically principled approach based on adjoint SDEs, achieving state-of-the-art results but still requiring reward gradients.
+
+\paragraph{The gradient bottleneck.}
+Gradient-based fine-tuning methods (DRaFT, adjoint matching) require backpropagating through the reward function, which creates practical limitations: storing activations for large reward models leads to prohibitive memory costs, and non-differentiable rewards (human feedback, discrete evaluations, simulator-based metrics) cannot be handled. RL-based approaches (RLHF, DPOK) avoid this by using only reward values, not gradients, but introduce other challenges: policy gradient estimators have high variance, and careful hyperparameter tuning is needed to balance reward maximization against mode collapse. Neither approach provides distributional guarantees on the resulting fine-tuned model.
+
+\paragraph{Gap 3.} To our knowledge, no existing gradient-free methods fine-tune diffusion models to sample from reward-tilted distributions. Existing methods either require reward gradients or use reinforcement learning with high-variance estimators. We address this gap in Chapter~\ref{chap:ftdiffusion}, developing a method based on Fisher's identity that requires only forward evaluations of the reward function.
+
+\subsection{Objectives of This Thesis}
+\label{sec:intro-objectives}
+
+Based on the identified gaps, we formulate three objectives:
+
+\begin{enumerate}
+    \item \textbf{Extreme value generation.} Develop a generative model for multivariate extremes with provable guarantees on stdf approximation. The method should use heavy-tailed latent noise and provide explicit bounds on the approximation error in terms of network architecture.
+
+    \item \textbf{Order statistics generation.} Develop a generative model for order statistics that guarantees sortedness while matching the target distribution. The method should exploit classical representations and provide approximation bounds that scale favorably with dimension.
+
+    \item \textbf{Reward-tilted generation.} Develop a gradient-free method for fine-tuning diffusion models to reward-tilted distributions. The method should require only forward evaluations of the reward function.
+\end{enumerate}
 
 
 \section{Contributions of This Thesis}
-% TARGET: ~3-4 pages
-% GOAL: Clear, informal statement of main results for each axis
+\label{sec:intro-contributions}
+
+We now summarize the main contributions, organized by the three objectives.
 
 \subsection{Heavy-Tailed GANs for Extreme Value Generation}
-% TARGET: ~1-1.5 pages
-% CHAPTER 2: HTGAN
+\label{sec:intro-contrib-htgan}
 
-% --- Key insight (~0.3 page) ---
-% - Replace Gaussian latent noise with heavy-tailed (Pareto/Fréchet) noise
-% - Generator output inherits heavy-tail property
-% - STDF of generated data is always *discrete* (finite atoms)
+We develop Heavy-Tailed GANs (HTGAN) for generating data with correct tail dependence.
 
-% --- Main theoretical result (~0.5 page) ---
-% - Theorem (informal): Any STDF can be approximated within error ε
-%   using latent dimension N = O(ε^{-(d-1)})
-% - Achieved with single-layer ReLU network
-% - First approximation guarantee for tail dependence with GANs
-% \newjp{Énoncer Theorem 1 informellement}
+\paragraph{Theoretical contributions.}
+We replace Gaussian latent noise with heavy-tailed (Pareto or Fr\'echet) noise. Because the generator is Lipschitz, the heavy-tail property propagates to the output. We prove that the stdf of the generated distribution is always discrete, a maximum of linear functions with finitely many atoms. Our main approximation theorem establishes that any stdf can be approximated within $L^\infty$ error $\varepsilon$ using latent dimension $N = O(\varepsilon^{-(d-1)})$ and a single hidden layer with ReLU activations. This appears to be the first approximation guarantee for tail dependence in the generative modeling literature.
 
-% --- Practical algorithm (~0.3 page) ---
-% - Marginal transformation to unit Fréchet
-% - Train GAN with Pareto input
-% - Inverse transform to original scale
+\paragraph{Methodological contributions.}
+The HTGAN algorithm proceeds in three steps: marginal transformation to unit Fr\'echet, GAN training with Pareto latent noise, and inverse transformation. This separation of margins and dependence is standard in copula modeling.
 
-% --- Experiments (~0.3 page) ---
-% - Synthetic: Gumbel copula
-% - Real: S&P 500 financial data
-% - HTGAN outperforms light-tailed GAN on tail dependence metrics
+\paragraph{Experimental contributions.}
+We evaluate on synthetic Gumbel copula data and S\&P 500 returns, demonstrating that HTGAN correctly captures tail dependence while standard GANs fail by orders of magnitude.
 
 
 \subsection{Generative Neural Order Statistics}
-% TARGET: ~1-1.5 pages
-% CHAPTER 3: GENOS
+\label{sec:intro-contrib-genos}
 
-% --- Key insight (~0.3 page) ---
-% - Classical representations: Sukhatme (exponential spacings), Schucany (recursive)
-% - These decompose order statistics into simpler building blocks
-% - Neural network approximation can exploit these structures
+We develop Generative Neural Order Statistics (GENOS) for generating ranked data with guaranteed ordering.
 
-% --- Main theoretical result (~0.5 page) ---
-% - Theorem (informal): ReLU networks with O(ε^{-2} log(1/ε)) parameters
-%   can approximate order statistics of n iid uniforms
-%   within O(ε log n) expected L1 error
-% - Sukhatme representation is key: concentrates nonlinearity in F and F^{-1}
-% \newjp{Énoncer le théorème d'approximation informellement}
+\paragraph{Theoretical contributions.}
+We combine classical statistics representations with neural network approximation theory \parencite{yarotsky2017} to derive non-asymptotic complexity bounds. Specifically, we adapt two classical representations of order statistics and analyze their neural network approximation complexity.
 
-% --- Practical contributions (~0.3 page) ---
-% - Global mean-scale normalization (preserves ordering, unlike per-coordinate)
-% - WGAN-OSP: order statistics penalty for enforcing sortedness
-% - Trade-off: sortedness (85% → 99%) with minimal Wasserstein cost
+\emph{Schucany's representation} \parencite{schucany1972} constructs order statistics recursively:
+\begin{equation}
+    U_{n-r:n} = U_{n-r+1:n} \cdot U_r^{1/(n-r)}, \quad r = 1, \ldots, n-1.
+    \label{eq:schucany}
+\end{equation}
+This requires $n$ different transition functions. We prove that neural approximation of this scheme requires a number of parameters that is polynomial of degree $n$ in $\varepsilon^{-1}$.
 
-% --- Experiments (~0.3 page) ---
-% - Synthetic order statistics, varying dimension
-% - Metrics: W1D, SWD, Spearman, Kendall, sortedness
+\emph{Sukhatme's representation} \parencite{sukhatme1937} expresses uniform order statistics via exponential spacings:
+\begin{equation}
+    U_{k:n} = F\left(\sum_{j=1}^k \frac{E_j}{n-j+1}\right), \quad E_j \stackrel{\text{iid}}{\sim} \mathrm{Exp}(1), \quad F(z) = 1 - e^{-z}.
+    \label{eq:sukhatme}
+\end{equation}
+The cumulative sum has an exponential distribution; applying the exponential CDF $F$ yields the $k$-th uniform order statistic $U_{k:n}$. This requires approximating only two universal functions ($F$ and $F^{-1}$), independent of $n$. We prove that the Sukhatme-based approach achieves
+\begin{equation}
+    \E|U_{k:n} - \hat{U}_{k:n}| \leq O(\varepsilon \log n) \quad \text{with} \quad \mathcal{C}_{\mathrm{Sukhatme}}(\varepsilon) = O(\varepsilon^{-2} \log(1/\varepsilon))
+    \label{eq:sukhatme-complexity}
+\end{equation}
+parameters. The complexity is quadratic in $\varepsilon^{-1}$, independent of $n$, versus polynomial of degree $n$ for Schucany. This makes the Sukhatme-based approach scalable to large sample sizes.
+
+\paragraph{Methodological contributions.}
+We introduce global mean-scale normalization, which preserves ordering unlike per-coordinate normalization. We also propose an order statistics penalty (OSP) that penalizes violations of the ordering constraint:
+\[
+    \mathcal{L}_{\mathrm{OSP}} = \E_{Z} \left[ \frac{1}{n-1} \sum_{k=1}^{n-1} \left( \max\{G(Z)_k - G(Z)_{k+1}, 0\} \right)^2 \right].
+\]
+
+\paragraph{Experimental contributions.}
+We evaluate on synthetic order statistics with varying dimension, comparing GAN, WGAN, and WGAN with OSP. Adding the OSP penalty improves sortedness metrics while maintaining competitive performance on Wasserstein distance.
 
 
 \subsection{Gradient-Free Fine-Tuning of Diffusion Models}
-% TARGET: ~1-1.5 pages
-% CHAPTER 4: FTDiffusion
+\label{sec:intro-contrib-ftdiff}
 
-% --- Key insight (~0.3 page) ---
-% - Fisher's identity: score of tilted distribution involves *covariance*, not gradient
-% - Cov(∇ log q_{t|0}, r) can be estimated via Monte Carlo with only forward evals of r
-% - No backprop through reward function needed
+We develop gradient-free methods for fine-tuning diffusion models to sample from reward-tilted distributions.
 
-% --- Method: Iterative Tilting (~0.5 page) ---
-% - Decompose target tilt into N small steps
-% - At each step k: train score network to match previous score + covariance correction
-% - Error per step: O(1/N²), accumulates to O(1/N) total
-% \newjp{Expliquer l'idée de décomposition}
+\paragraph{Theoretical contributions.}
+Fisher's identity expresses the score of the tilted distribution as a covariance:
+\begin{equation}
+    \nabla_x \log p(x) = \nabla_x \log p_0(x) + \lambda \cdot \mathrm{Cov}_{q_{0|x}}\left[\nabla_{x_0} \log q(x_0 | x), \, r(x_0)\right].
+    \label{eq:fisher-identity}
+\end{equation}
+This covariance can be estimated via Monte Carlo using only forward evaluations of $r$, without backpropagation through the reward model.
 
-% --- Theoretical guarantee (~0.3 page) ---
-% - Proposition: First-order score approximation via Fisher identity
-% - Corollary: O(1/N²) error per tilt step
-% - Practical: N = 50-100 tilts sufficient for good approximation
+\paragraph{Methodological contributions.}
+We propose an iterative algorithm that decomposes a large tilt into $N$ small steps, estimating the score increment at each step via Fisher's identity. The algorithm applies even when $r$ is non-differentiable or a black-box.
 
-% --- Experiments (~0.3 page) ---
-% - Controlled setting: 2D Gaussian mixtures (ground truth available)
-% - Track score RMSE across iterations
-% - Validates convergence with increasing N
+\paragraph{Experimental contributions.}
+On 2D Gaussian mixtures with known ground truth, we validate that the method correctly recovers the tilted score and that increasing the number of steps $N$ improves accuracy.
 
 
 \section{Organization of the Manuscript}
-% TARGET: ~1 page
-% GOAL: Roadmap for the reader
+\label{sec:intro-organization}
 
-% --- Chapter 2: Heavy-Tailed GANs (~0.3 page) ---
-% - Full development of HTGAN theory
-% - Propositions on STDF representation
-% - Main approximation theorem with proof
-% - Experiments on synthetic and financial data
-% \newjp{Préciser: based on paper [X] published/submitted at [venue]}
+Chapter~\ref{chap:htgan} develops the theory and algorithms for heavy-tailed generative modeling. We present mathematical background on multivariate extreme value theory and the stdf, analyze why Lipschitz maps of Gaussian noise cannot produce heavy tails, characterize the discrete stdf induced by generators with Pareto noise, prove our main approximation theorem, and present experiments on synthetic and financial data.
 
-% --- Chapter 3: Generative Neural Order Statistics (~0.3 page) ---
-% - Approximation theory via Sukhatme/Schucany representations
-% - WGAN-OSP algorithm and order-preserving normalization
-% - Experiments on synthetic order statistics
-% \newjp{Préciser: based on paper [X] published/submitted at [venue]}
+Chapter~\ref{chap:genos} develops generative models for order statistics. We present background on order statistics and the Sukhatme and Schucany representations, prove approximation bounds for ReLU networks, introduce global mean-scale normalization and the WGAN-OSP objective, and present experiments on synthetic order statistics.
 
-% --- Chapter 4: Iterative Tilting for Diffusion Fine-Tuning (~0.3 page) ---
-% - Fisher identity and gradient-free score estimation
-% - Iterative tilting algorithm
-% - Controlled experiments on Gaussian mixtures
-% \newjp{Préciser: based on paper [X] published/submitted at [venue]}
+Chapter~\ref{chap:ftdiffusion} develops gradient-free fine-tuning for diffusion models. We present background on exponential tilting and existing gradient-based methods, derive the Fisher identity-based score estimator, analyze the approximation error, present the iterative tilting algorithm, and validate on controlled experiments.
 
-% --- Appendices (if any) ---
-% - Technical proofs
-% - Additional experiments
-% - Code availability
-
+This thesis is partially based on collaborative work: Chapter~\ref{chap:htgan} on heavy-tailed generative models, Chapter~\ref{chap:genos} on neural approximation of order statistics, and Chapter~\ref{chap:ftdiffusion} on gradient-free diffusion fine-tuning. Specific venues and co-authors are indicated at the beginning of each chapter.

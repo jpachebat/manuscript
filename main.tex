@@ -11,12 +11,14 @@
 % Font encoding and language
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[english,french]{babel}  % French last = default, switch with \selectlanguage
+\usepackage[french,english]{babel}  % English last = default
 
 % Graphics and figures
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, calc}
 
 % Tables
 \usepackage{booktabs}
@@ -33,12 +35,16 @@
 \addbibresource{bibliography/references.bib}
 
 % Hyperlinks and references
-\usepackage[hidelinks]{hyperref}
+\usepackage[colorlinks=true,linkcolor=blue!70!black,citecolor=blue!70!black,urlcolor=blue!70!black]{hyperref}
 \usepackage{cleveref}
 
 % Line spacing
 \usepackage{setspace}
 \onehalfspacing
+
+% Line numbers for note-taking (remove for final version)
+\usepackage{lineno}
+\linenumbers
 
 % Headers and footers
 \usepackage{fancyhdr}
@@ -51,6 +57,7 @@
 % Other useful packages
 \usepackage{lipsum}  % For dummy text (remove in final version)
 \usepackage{enumitem}  % Better lists
+\setlist[itemize]{label=\textbullet}  % Central bullets instead of dashes
 \usepackage{xcolor}  % Colors
 \usepackage{appendix}  % Better appendix handling
 \usepackage{xargs}  % For \newcommandx
@@ -92,28 +99,10 @@
 \makeatletter
 \begin{titlepage}
     \centering
-    \vspace*{2cm}
+    \vspace*{4cm}
 
     {\LARGE\bfseries \@title \par}
-    \vspace{1.5cm}
-
-    {\Large by\par}
-    \vspace{0.5cm}
-
-    {\Large\bfseries \@author \par}
-    \vspace{2cm}
-
-    {\large A thesis submitted in partial fulfillment\\
-    of the requirements for the degree of\\
-    \degree \par}
-    \vspace{1cm}
-
-    {\large in\par}
-    \vspace{0.5cm}
-
-    {\large \department\\
-    \university \par}
-    \vspace{2cm}
+    \vspace{3cm}
 
     {\large \@date \par}
 
@@ -159,7 +148,6 @@
 \selectlanguage{french}
 \chapter{Introduction (Version française)}
 \label{chap:introduction_fr}
-\input{chapters/02_introduction_fr}
 
 % ============================================
 % CHAPTER 3: Heavy-Tailed GANs (HTGAN)
@@ -167,21 +155,18 @@
 \selectlanguage{english}
 \chapter{Heavy-Tailed GANs for Extreme Value Generation}
 \label{chap:htgan}
-\input{chapters/03_htgan}
 
 % ============================================
-% CHAPTER 4: Generative Neural Order Statistics (GENOS)
+% CHAPTER 3: Generative Neural Order Statistics (GENOS)
 % ============================================
 \chapter{Generative Neural Order Statistics}
 \label{chap:genos}
-\input{chapters/04_genos}
 
 % ============================================
-% CHAPTER 5: Diffusion Fine-Tuning (FTDiffusion)
+% CHAPTER 4: Diffusion Fine-Tuning (FTDiffusion)
 % ============================================
 \chapter{Gradient-Free Fine-Tuning of Diffusion Models}
 \label{chap:ftdiffusion}
-\input{chapters/05_ftdiffusion}
 
 % Back matter
 \backmatter
@@ -189,10 +174,11 @@
 % Bibliography
 \printbibliography[heading=bibintoc,title={References}]
 
-% Appendices
+% Appendices (not in TOC)
 \begin{appendices}
+\addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
 \input{appendices/appendix_a}
-% Add more appendices as needed
+\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}
 \end{appendices}
 
 \end{document}

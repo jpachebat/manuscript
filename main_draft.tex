@@ -1,0 +1,84 @@
+% PhD Manuscript Draft - For Advisor Review
+\documentclass[12pt,a4paper,oneside]{book}
+
+% ============================================
+% PACKAGES
+% ============================================
+
+% Page layout and margins
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+
+% Font encoding and language
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+
+% Graphics and figures
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{multirow}
+
+% Mathematics
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% Bibliography (using biblatex with biber backend)
+\usepackage[style=authoryear,backend=biber,maxcitenames=2,maxbibnames=99]{biblatex}
+\addbibresource{bibliography/references.bib}
+
+% Hyperlinks and references
+\usepackage[colorlinks=true,linkcolor=blue!70!black,citecolor=blue!70!black,urlcolor=blue!70!black]{hyperref}
+\usepackage{cleveref}
+
+% Line spacing
+\usepackage{setspace}
+\onehalfspacing
+
+% Line numbers for note-taking
+\usepackage{lineno}
+\linenumbers
+
+% Headers and footers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\fancyhead[L]{\leftmark}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Other packages
+\usepackage{enumitem}
+\setlist[itemize]{label=\textbullet}
+\usepackage{xcolor}
+\usepackage{bbm}
+\usepackage{bm}
+
+% Load custom macros
+\input{macros/def}
+\input{macros/commands}
+
+% ============================================
+% DOCUMENT BEGINS
+% ============================================
+
+\begin{document}
+
+% Start directly with main matter (no title page, no front matter)
+\mainmatter
+
+% ============================================
+% CHAPTER 1: Introduction
+% ============================================
+\chapter{Introduction}
+\label{chap:introduction}
+\input{chapters/01_introduction}
+
+% Bibliography
+\printbibliography[heading=bibintoc,title={References}]
+
+\end{document}
