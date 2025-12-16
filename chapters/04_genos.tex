@@ -640,11 +640,17 @@ We hope this bridges classical order‑statistics theory and modern deep generat
 
 \clearpage
 
-% Chapter appendix - reset section counter for appendix numbering
-\setcounter{section}{0}
-\renewcommand{\thesection}{\thechapter.\Alph{section}}
+%% ============================================
+%% CHAPTER APPENDICES
+%% ============================================
 
-\section{Additional Figures}\label{sec:addl-figs}
+\section*{Appendix}
+\addcontentsline{toc}{section}{Appendix}
+
+\renewcommand{\thesubsection}{\thechapter.\Alph{subsection}}
+\setcounter{subsection}{0}
+
+\subsection{Additional Figures}\label{sec:addl-figs}
 
 \begin{figure}[htbp]
   \centering
@@ -687,8 +693,9 @@ We hope this bridges classical order‑statistics theory and modern deep generat
   \label{fig:meanscale_dim10}
 \end{figure}
 
-\section{Some theory of concomitants}
-\subsection{Representation results for order statistics} \label{subsec:representation_OS}\label{sec:proof_representationos}
+\subsection{Some theory of concomitants}
+
+\subsubsection{Representation results for order statistics} \label{subsec:representation_OS}\label{sec:proof_representationos}
 
 \paragraph{Writing order statistics as min and max.}
 
@@ -924,7 +931,7 @@ In that case, the Rosenblatt transformation writes
 
 
 
-\section{Some elements on Functional approximation with Neural Network}
+\subsection{Some elements on Functional approximation with Neural Network}
 
 \Cref{subsec:representation_OS} provides different computational methodologies for obtaining order statistics.
 A natural question is how well a Neural Network-based method can approximate the obtained functions.
@@ -966,8 +973,9 @@ The core result of \parencite{yarotsky2017} is the following:
 \end{theorem}
 %TODO: precise analysis of model complexity / precision attained based on the three possibilities \eqref{eq:order_stats_min_max},\eqref{eq:exponential_representation} and \eqref{eq:inverse_conditional} ?}
 
-\section{Proofs}
-\subsection{Proof of \Cref{prop:sampling_schucany}}\label{sec:proof_schucany}
+\subsection{Proofs}
+
+\subsubsection{Proof of \Cref{prop:sampling_schucany}}\label{sec:proof_schucany}
 
 Let's investigate the error induced by the sampling procedure of \Cref{alg:sampling_schucany}.
 Let $r\in[N]$. We are looking to bound the quantity $\Delta V_r = \hat U_{N - r:N} - U_{N - r:N}$.
@@ -1268,8 +1276,9 @@ There exists a ReLU Neural Network $\eta_{NN}$ (we reuse the notation $\eta_{NN}
 
 
 
-\section{Experiments}
-\subsection{More background on GANs}
+\subsection{Additional experimental details}
+
+\subsubsection{More background on GANs}
 \label{sec:background_gans}
 
 This appendix summarizes the adversarial training objectives used in our experiments and highlights practical details for stability.
