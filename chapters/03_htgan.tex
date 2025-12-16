@@ -1144,11 +1144,18 @@ The authors thank the referees for  their constructive remarks which improve the
 They acknowledge the support of the Chair ``Stress Test, Risk Management and Financial Steering'', led by the French Ecole Polytechnique and its Foundation and sponsored by BNP Paribas. S. Girard also gratefully acknowledges support from the French National Research Agency under the grant ANR-23-CE40-0009. 
 
 \clearpage
-% Supplementary material (appendix removed to not affect subsequent chapters)
 
-\centerline{\textbf{Supplementary}}
+%% ============================================
+%% CHAPTER APPENDICES
+%% ============================================
 
-\section{Theoretical background}\label{supp:sec:background_evt}
+\section*{Appendix}
+\addcontentsline{toc}{section}{Appendix}
+
+\renewcommand{\thesubsection}{3.\Alph{subsection}}
+\setcounter{subsection}{0}
+
+\subsection{Theoretical background}\label{supp:sec:background_evt}
 Section~\ref{subsec:appendix/EVT} provides additional background on extreme-value theory to complement Section~\ref{subsec:EVT}.
 Section~\ref{subsec:appendix/D-norms} is devoted to D-norms, introduced in Section~\ref{subsec:Measuring dependence in extremes}.
 Section~\ref{subsec:appendix/quantization} focuses on the theory of quantization.
@@ -1408,9 +1415,10 @@ Specifically, the sliced-Wasserstein distance is defined as:
 \end{equation}
 where $\mathbb{S}^{d-1} $ is the Euclidean unit sphere, $\vbf_\# \mu$ (respectively $\vbf_\#\nu$) stands for the pushforward of the projection $\Xbf\in \mathbb{R}^d\mapsto \langle \Xbf, \vbf\rangle\in\R$, where $\Xbf \sim \mu$ (respectively $\nu$).
 
-\section{Proofs of claims}
+\subsection{Proofs of claims}
 \label{supp:section:Proofs of claims}
-\subsection{Proof of Proposition~\ref{prop:discret2}}
+
+\subsubsection{Proof of Proposition~\ref{prop:discret2}}
 \label{section:Proof of Proposition prop:discret2}
 The following states an interesting corollary of Theorem \ref{th:max_domain_equiv}, which we are the first to prove formally as far as we know.
 
@@ -1641,9 +1649,10 @@ From~\eqref{eq:asymptotic_quantification_number}, we get that:
   In particular, if the generator $\Gammabf$ has a null density with respect to the Lebesgue measure (\eg if the distribution is discrete), the multiplicative factor of the $N^{ -1 / (d - 1) }$ term is null and the convergence of the bound can be quicker than $N^{ -1/ (d-1 ) }.$ 
   }
     
-    \section{Supplementary for experiments}
+    \subsection{Additional experiments}
     \label{section:Supplementary for experiments}
-    \subsection{Experiments on Hüsler-Reiß and Gaussian models}
+
+    \subsubsection{Experiments on Hüsler-Reiß and Gaussian models}
     \label{subsec:detais-HR&G}
  
     \paragraph*{Experimental setup.}
