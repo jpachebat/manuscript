@@ -1,36 +1,1361 @@
-% Chapter 4: Generative Neural Order Statistics (GENOS)
-% Based on: GENOS paper (NeurIPS workshop / TMLR submission)
-% Authors: Jean Pachebat, Emmanuel Gobet, et al.
-% ----------------------------------------------------------------------
+% Chapter: Generative Neural Order Statistics (GENOS)
+% Based on: Pachebat, Gobet et al. - "Generative Model for various Order Statistics"
+% --------------------------------------------------------------------------------------------
 
-% TODO: Import content from ~/proj/genos/tex/
-
-% Placeholder structure based on the paper:
+% Chapter abstract/introduction
+This chapter develops the theory and algorithms for generating order statistics using neural networks. We analyze the representational capabilities of neural network-based generative models for sorted data, deriving approximation bounds based on the Sukhatme and Schucany representations.
 
 \section{Introduction}
-% Context: impact investing, ranked portfolios
-% Gap: standard GANs break ordering constraints
-% Contribution: approximation theory + WGAN-OSP
+% TODO [REDACTION] adds-on: 
+%  1. More economical background on impact investing and sustainable finance. Something a tiny bit more motivated. \\
+%  2. Rethink segmentation of second paragraph. OS and IOS deserve a paragraph of their own. \\
+%  3. Numerous existing ML approaches for sorting random variables / etc \dots: sota. See Palomar for Financial modeling.
 
-\section{Background on Order Statistics}
-% Definition: X_{1:n} ≤ X_{2:n} ≤ ... ≤ X_{n:n}
-% Classical representations: Sukhatme, Schucany
-% Why ordering matters in applications
+\paragraph{Sustainable investing.}
+Sustainable finance refers to the process of taking environmental, social and governance (ESG) considerations into account when making investment decisions in the financial sector, leading to more long-term investments in sustainable economic activities and projects, as defined by the \citet{europeancommission2024}.
+Within sustainable finance, a particular quantitative framework, impact investing, is broadly defined as investments that consider not only financial objectives but also other goals such as supporting certain social priorities and agendas \parencite{lo2021}.
+Impact investing seeks to optimize both financial objectives and metrics that quantify the compliance level of assets with sustainable goals.
+For example, ratings on \newjp{ESG} factors provide information about the sustainability performance of a company or a financial instrument, by assessing its exposure to sustainability risks and/or its impact on people and the environment \parencite{europeancommission2024a}.
+%\emmi{pour l'investissement durable, tu peux t'inspirer du chap 3 du livre de  Roncalli "Handbook of Sustainable Finance" \url{http://www.thierry-roncalli.com/SustainableFinance.html}, cela parle d'ESG, de gestion de portefeuilles, etc}
+\paragraph{Impact investing, order statistics and induced order statistics.}
+Recent developments in Mathematical finance and economics have tackled the challenging task of translating sustainable investing into a mathematical framework.
+Among those, the work in \parencite{lo2021} introduces a general framework for quantifying \newjp{the} impact of impact investing.
+Namely, authors propose to formalize impact investing as the sorting and selection of an investment universe of $N$ securities based on an \textit{impact factor}, typically the ESG score, $\Xbf = (X_1, \dots, X_N)^T$ and a \textit{performance metric}, typically the return associated with an asset, $\Thetabf = (\Theta_1, \dots, \Theta_N)$.
+In this framework, $\Xbf$ and $\Thetabf$ are time series evolving in time.
+It is a common assumption to suppose that both the performance metric and the impact factor are identically distributed throughout time \newjp{and we will hold this assumption in this work.}
+In this case, the training data consists of the sorted realizations of the time series.
+Suppose that $\Xbf$ varies with time, denoted $\Xbf_t$.
+Under the assumption of identical distributions over time, we drop the time index and treat each observation as a vector.
+Typically, we are interested in time scales where there are significant changes in the values taken by the impact factor, i.e., periods corresponding to months or years. 
+This excludes high-frequency trading.
+In this framework, we rank assets by the impact factor and study the associated returns ordered accordingly.
+This operation fits into the framework of \textit{order statistics} and \textit{induced order statistics}.
+Formally: suppose that we have a dataset consisting of \newjp{\iid} realizations of the investment universe $\left\{\left(X_1, \Theta_1\right), \dots, \left(X_N, \Theta_N\right)\right\}$, the order statistics of the impact factor $\Xbf$ is defined as a random permutation $\sigma$ of its elements satisfying: 
 
-\section{Neural Network Approximation of Order Statistics}
-% Sukhatme representation analysis
-% Schucany representation analysis
-% Main theorem: O(ε^{-2} log(1/ε)) parameters for O(ε log n) error
+\begin{equation}
+  X_{\sigma(1)} \leq \dots \leq X_{\sigma(N)}. 
+  \label{eq:order_stats}
+\end{equation}
 
-\section{Practical Considerations}
-% Global mean-scale normalization (preserves ordering)
-% Why per-coordinate normalization fails
-% WGAN-OSP: order statistics penalty
+\newjp{Recall that throughout the paper, we suppose that the realizations $X_1,\dots, X_N$ are \iid}.
+Note that if the distribution of $\Xbf$ is continuous, such a permutation is unique \textit{almost surely}.
+Also note that the permutation is random and that each instance depends on the realization $X_1, \dots, X_N$.
+We therefore denote, for any $i\in[N]$, $X_{i:N} = X_{\sigma(i)}$, the \textit{$i^{th}$ order statistic}.
+Furthermore, note the marginal law of $X_{k:N}$ is different of the marginal law of $X_k$ for each $k$.
+The associated \textit{induced order statistics} (IOS) are defined as: 
 
+\begin{equation}
+  \forall i\in [N]:\;\Theta_{[i:N]} = \Theta_{\sigma(i)}.
+\end{equation}
+
+An \textit{impact portfolio strategy}, as defined in \parencite{lo2021}, is a strategy that consider\newjp{s} both the performance metric $\Thetabf$ and the impact factor $\Xbf$.
+Typically, an impact driven investor is willing to invest in stocks that have high scores for the impact factor (high values of $\Xbf$) but also have good values for the performance metric $\Theta$.
+In this view, it is crucial to perform accurate estimation of the joint distribution of order statistics and the associated induced order statistics counterparts.
+Modeling order statistics and induced order statistics is an rich, ongoing research field.
+A thorough treatment of theory of order statistics is given in \parencite{david2004}.
+The work \parencite{lo2021} proposes a model-based assumption of the impact factor and the performance metric. 
+This approach, combined with a representation theorem of the data, allows for powerful representation theorems for the new portfolio.
+
+\paragraph{Machine Learning and Generative Modeling.}
+% TODO [REDACTION] Add insights on physics informed Neural Networks
+Financial datasets are typically scarce and very high dimensional.
+In a typical setting, $\Xbf$ and $\Thetabf$ are observed over a period of 30 years.
+If the case where daily data are observable, it amounts to roughly around $30 \text{ days } \times 12 \text{ months } \times 30 \text{ years} \approx 10,000 \text{ data points}$data points.
+Note that it usually makes sense to study data at the granularity of a day for the performance metric (for example, considering daily stocks returns), but not necessarily for the impact factor.
+For example, the scale of change for the ESG score is of month or even years.
+On the other side, the data is of size $N$, where $N$ corresponds to the size of the investment universe.
+In the case of the $S\&P500$ index, the size amounts to roughly $500$.
+Such characteristics make it difficult to build predictive models or perform statistical estimation without a calibration model.
+To cope with this difficulty, a line of research has focused on augmenting the data available with accurate simulations.
+Historically, for financial applications, approaches for data augmentation include bootstrap methods, Monte Carlo simulations and parametric models. 
+In portfolio management, Monte Carlo methods are widely used by practitioners \parencite{glasserman2013}.
+Generally speaking, the simulation approach for data augmentation can be framed as mapping a source of randomness to the data of interest.
+In our impact investing framework, the problem is defined as finding a \newjp{generator} function $\mathcal{G}$ associated to a source of randomness $\Zbf$ such that: 
+
+\begin{equation}  
+  \mathcal{G}\left(\Zbf\right) \stackrel{d}{=} \left(\left(X_{1:N}, \Theta_{[1:N]}\right), \dots,\left(X_{N:N}, \Theta_{[N:N]}\right) \right)
+  \label{eq:gen_learning_pb}
+\end{equation}
+
+where $\stackrel{d}{=}$ stands for equality in distribution.
+The problem of the existence of \newjp{tractable} models achieving \newjp{exactly} \eqref{eq:gen_learning_pb} is an open question. 
+\parencite[Theorem 1]{lo2021} provides a representation theorem that maps a source of randomness to the data distribution.   
+
+\paragraph{Problem statement.}
+% TODO [REDACTION] exchange paragraph: exchange this paragraph with the previous. 
+
+It is not known how real (understand finite, approximate) machine learning models are able to correctly approximate the link function $\Phi$.
+Our analysis is therefore oriented towards finding non-asymptotic guarantees on the quality of approximation of $\Phi$.
+We build on work from the theory of function approximation with neural network \parencite{cybenko1989, hornik1989, yarotsky2017} and properties such as the Markovian property \parencite[Chapter 2, Section 5]{david2004} of order statistics and induced order statistics.
+Moreover, the problem of modeling impact portfolios lies in its high dimensional nature.
+Typically, the number of asset in the universe is large (eg: $N=500$ for the S\&P 500 index and $N=1,000$ for the Russell 1000 index) and we have only few data at disposition. 
+Typically, 20 to 30 years of data are available. 
+Considering monthly datasets, that yields a dataset with less than 400 data points. 
+It is neither theoretically nor practically feasible to learn a generative model with so few data points.
+However, in view of impact investing, we are solely interested in modeling assets with best performing performance metrics.
+
+We are focused on modeling best performing assets in regard of the performance metric, in descending order:
+
+\begin{equation}  
+  \mathcal{G}\left(\Zbf\right) \stackrel{d}{=} \left(\left(X_{N:N}, \Theta_{[N:N]}\right), \dots,\left(X_{N - d + 1:N}, \Theta_{[N - K:N]}\right) \right),
+  \label{eq:gen_learning_pb_upper_quantile}
+\end{equation}
+
+where typically the dimension of datapoints $d = \lceil\eta N\rceil $, $\eta$ is a thresholding value, \eg\: $5\% = 0.05$.
+
+\subsection{Notations}
+We summarize the main notations used throughout the paper.
+\begin{itemize}
+  \item \textbf{Indices and sets:}
+   For an integer $N\ge 1$, we write $[N] \eqdef \{1,2,\dots,N\}$.
+   The symbol $k\in[N]$ denotes an index.
+  \item \textbf{Scalars, vectors, matrices:}
+   Lowercase letters ($x,y,u,\dots$) denote scalars.
+   Bold ($\xbf, \Xbf, \ybf, \Ybf,\dots$) denote column vectors. 
+   The $i$-th component of $\xbf$ is $x_i$.
+  \item \textbf{Probability:}
+   $\P$ and $\E$ denote probability and expectation.
+   Equality in distribution is written $X\,\eqdist\,Y$.
+   The indicator of an event $A$ is $\mathbb{I}\{A\}$.
+   The cumulative distribution of $X$ is commonly written $F_X$, except if it is explicitly stated otherwise.
+  \item \textbf{Spaces and functions:}
+   $\R$ is the set of real numbers, $\N$ the set of positive integers.
+   For a cumulative distribution function (cdf) $F$, $F^{-1}$ denotes the (left-continuous) quantile function.
+   We use $\ln(\cdot)$ for the natural logarithm.
+  \item \textbf{Order statistics and induced order statistics (OS/IOS):}
+   For \iid $X_1,\dots,X_N\in\R$ with cdf $F_X$, the order statistics are $X_{1:N}\le\dots\le X_{N:N}$, where $X_{k:N}$ is the $k$-th order statistic.
+   For \iid pairs $(X_i,\Theta_i)$, the concomitant of $X_{r:N}$ is $\Theta_{[r:N]}$, \ie, the $\Theta$ attached to the observation whose $X$-value ranks $r$th; see \Cref{def:conco}.
+  \item \textbf{Uniforms and exponentials:}
+   $U$ denotes a standard uniform random variable on $(0,1)$.
+   $\mathcal{E}(1)$ denotes the unit exponential law with density $f(z)=e^{-z}\,\mathbb{I}\{z\ge 0\}$.
+   We write $Z\sim\mathcal{E}(1)$ and use $F(z)=1-e^{-z}$, $F^{-1}(u)=-\ln(1-u)$.
+  \item \textbf{Neural networks:}
+   $G_{NN}$ denotes a neural network generator mapping \iid inputs (\eg, uniforms) to outputs. When a family of networks is used, superscripts indicate roles, e.g., $F_{NN}$ and $F^{-1}_{NN}$ for approximations of $F$ and $F^{-1}$.
+  \item \textbf{Asymptotics:} $a_N\sim b_N$ means $\lim_{N\to\infty} a_N/b_N=1$. Big-$\mathcal{O}$ notation is standard.
+\end{itemize}
+
+
+% Section: Theoretical analysis of generative modeling of order statistics with Neural Networks
+\section{A theoretical analysis of generative modeling of order statistics with Neural Networks}
+
+%%% Jean : je commente ton commentaire ci-dessous. %%%
+
+% \emmi{9 dec: J'ajoute une question intermédiaire qui est un des ingrédients autour du pb, cela porte sur la stat d'ordre: dans quel mesure (erreur, complexité) un modele generatif de type $G_{NN}(U_1, \cdots, U_N)$ est il capable d'avoir (approximativement) la loi de la stat d'ordre $(U_{1,n}, U_{n,n})$? \\
+% Bien sur, nous pourrions simuler $U_1, \cdots, U_N$ et faire le sorting, sans NN. Mais on peut se poser la question (théorique) si un NN saurait faire ce sorting. J'ai en tete 2-3 pistes:\\
+% * dans \url{https://www.sciencedirect.com/science/article/pii/S0304414907001408}, Local times of ranked continuous semimartingales, par Banner et Ghomrasni, SPA 2008, les N stat d'ordre s'écrivent comment des max et min (voir début section 2). Un ReLU NN fait très bien les max et min à partir de la fonction $x\mapsto x_+$.\\
+% * La representation de Sukhatme (1937) [Reiss book 1991, Th. 1.6.1] donne que si les $X_i$ sont iid de loi exponentielle standard, alors les espacements $(X_{i,n}-X_{i-1,n})_i$ sont independantes (avec la convention $X_{0,n}=0$, et de plus
+% $(n-(i-1))(X_{i,n}-X_{i-1,n})$ est encore de loi exponentielle standard. Il resterait à passer des exp aux uniformes.\\
+% * Si $E_1,\dots, E_n$ sont iid de loi exp, la distribution des espacements des stats d'ordre de U est donnée par
+%
+% \begin{equation}
+%    (U_{1,n}, \dots, U_{k+1,n}-U_{k,n}, 1-U_{n,n}) \stackrel{loi}= (\frac{E_1}{\Sigma_{n+1}}, \dots, \frac{E_{k+1}}{\Sigma_{n+1}}, \frac{E_{n+1}}{\Sigma_{n+1}}),
+% \end{equation}
+%
+% avec $\Sigma_n := E_1+\dots+E_n$. Voir \parencite[Example 4.1.10 p.~189]{embrechts1997}. Il suffit de simular des $V$ iid uniformes, d'avoir des exp avec une fonction log par NN, puis faire le calcul de ratio à droite avec un NN.
+% }
+
+
+Throughout this section, we let $N$ denote the dimension of the vector to be sorted for obtaining order statistics.
+For $k \in [N]$, the $k^{th}$ order statistic is denoted by $X_{k:N}$.
+We leverage these representations to analyze the capacity of neural networks to model order statistics (OS) and induced order statistics (IOS).
+Formally, we seek a neural network $G_{NN}$ such that
+\begin{equation}
+    G_{NN}(U_1, \dots, U_N) \stackrel{d}{=} (U_{1:N}, \dots, U_{N:N}),
+\end{equation}
+where $U_1, \dots, U_N$ are independent standard uniform random variables.
+To address this, we consider several possible constructions.
+We first recall the following result:
+
+\begin{prop}[\citet{david2004}, eq.~(2.3.7), p.~15]
+  Let $X \in \R$ be a random variable with arbitrary distribution function $F_X$.
+  Let $U$ be a standard uniform random variable.
+  Then:
+  \begin{equation}
+    \left(X_{1:N}, \dots, X_{N:N}\right)\eqdist \left(F_X^{-1}\left(U_{1:N}\right), \dots, F_X^{-1}\left(U_{N:N}\right)\right),
+  \end{equation}
+
+  \label{th:idd_os}
+\end{prop}
+
+This proposition shows that, up to transformation by the inverse cdf, the joint distribution of order statistics from any i.i.d.\ sample is determined by the order statistics of the uniform distribution. Therefore, in this section, we focus solely on approximation results for the order statistics of the uniform distribution. 
+
+
+% Subsection: Representational results for order statistics
+\subsection{Representational results for order statistics}
+
+We summarize two key sampling schemes for order statistics, with detailed proofs provided in \Cref{sec:proof_representationos}.
+
+\paragraph{Schucany's scheme.}
+Order statistics exhibit a Markov property.
+Let $U_1, \dots, U_N$ be i.i.d.\ standard uniform random variables.
+Following \parencite{schucany1972}, the order statistics of the uniform distribution can be recursively represented as
+\begin{equation}
+  \left\{
+  \begin{aligned}
+    U_{N:N} &= U_1^{1/N}, \\
+    U_{N-r:N} &= U_{N-r+1:N} \cdot U_{r}^{1/(N - r)} \quad \forall r \in \{1, \dots, N\}.
+  \end{aligned}
+  \right.
+  \label{eq:sampling_schucany}
+\end{equation}
+
+\paragraph{Sukhatme's representation.}
+Another important representation, due to \parencite{sukhatme1937}, also exhibits a Markov chain-like structure. Let $Z_{1}, \dots, Z_{N}$ be i.i.d.\ standard exponential random variables, with density
+\begin{equation}
+  f(z) = e^{-z}, \quad z \geq 0.
+  \label{eq:pdf_unitexpo}
+\end{equation}
+Let $F(z) = 1 - e^{-z}$ denote the associated cdf. Then, for all $r = 1, \dots, N$,
+\begin{equation}
+  Z_{r:N} \stackrel{d}{=} \sum_{i=1}^r (Z_{i:N} - Z_{i-1:N}) = \sum_{i=1}^r \frac{Y_i}{N - i + 1},
+  \label{eq:sukhatme_sum}
+\end{equation}
+where $Y_1, \dots, Y_N$ are i.i.d.\ standard exponential random variables and $Z_{0:N} = 0$ by convention.
+Applying \Cref{th:idd_os}, and noting that $F^{-1}(u) = -\ln(1-u)$ for $u \in (0,1)$, we have
+\begin{equation}
+  U_{r:N} \stackrel{d}{=} F\left(Z_{r:N}\right) = 1 - e^{-Z_{r:N}}.
+  \label{eq:sukhatme_sampling}
+\end{equation}
+
+
+% Subsection: Generating order statistics: approximation results
+\subsection{Generating order statistics: approximation results}
+
+To analyze how well neural networks can approximate the mapping from independent uniforms to order statistics, we establish bounds for the uniform case.
+
+\paragraph{Learning to generate order statistics based on Schucany's scheme.}
+We investigate the approximation quality of neural network-based generative schemes for uniform order statistics, using Schucany's recursive representation. The algorithm iteratively applies~\eqref{eq:sampling_schucany}, with neural networks $\hat G_{r:N}^{NN}$ approximating the functions
+\begin{equation}
+  G_{m:N}(u_1, u_2) = u_1 \cdot u_2^{1/m}.
+\end{equation}
+Thus, \eqref{eq:sampling_schucany} can be rewritten as
+\begin{equation}
+  U_{N - r:N} = G_{N - r:N}(U_{N - r + 1:N}, U_{r}).
+\end{equation}
+
+% Some modification in main.tex
+\vspace{1em}
+\begin{algorithm}[H]
+  \SetKwInOut{Input}{Input}
+  \SetKwInOut{Output}{Output}
+  \Input{Learned functions $\hat G^{NN}_{r:N}:[0,1]\to\R$ for $r \in [N]$; $N$ uniform samples $U_1, \dots, U_N$}
+  \Output{$\hat U_{1:N}, \dots, \hat U_{N:N}$}
+  Set $\hat U_{N:N} = U_N^{1/N}$\;
+  \For{$r \gets 1$ \KwTo $N$}{
+    $\hat U_{N - r:N} \leftarrow \hat G_{N - r:N}^{NN}(\hat U_{N -r + 1:N}, U_{r})$\;
+    \tcp{In parallel: $U_{N - r:N} \leftarrow U_{N - r + 1:N}U_r^{1 / (N - r)}$.}
+  }
+  \Return{$\hat U_{r:N} \text{ and } U_{r:N}$, for $1\leq r\leq N$.}
+  \caption{Sampling from order statistics $U_{1:N}\leq \dots \leq U_{N:N}$.}
+  \label{alg:sampling_schucany}
+\end{algorithm}
+\vspace{1em}
+
+With this procedure, we obtain the following result:
+\begin{theorem}
+  Let $\ve > 0$. There exists a family of \newjp{ReLU Neural Networks} $G_{N - r:N}^{NN}$ for $1 \leq r \leq N$ such that, using the sampling procedure of \Cref{alg:sampling_schucany} and setting
+  \begin{equation}
+    \Delta V_r = |\hat U_{N - r:N} - U_{N - r:N}|,
+  \end{equation}
+  we have $\E|\Delta V_{r}| < \ve$, where the total number of neurons in the family $\{G_{N - r:N}^{NN}\}_{1 \leq r \leq N}$ is
+  \begin{equation}
+    \mathcal{C}_{\text{Schucany}}(\ve) = \sum_{i=1}^r 3\left(\left\lceil\left(\frac{2r(N - i)}{(N - r)\ve}\right)^{N - i}\right\rceil + 1\right) + c_1\ln\left(\frac{8r(N - i)}{(N - r)\ve}\right) + c_2.
+  \end{equation}
+  \label{prop:sampling_schucany}
+\end{theorem}
+The proof is given in \Cref{sec:proof_schucany}. This result is pessimistic: the error is asymptotically polynomial of degree $N$ in $\ve^{-1}$.
+
+\paragraph{Learning with Sukhatme's representation.}
+Next, we consider the Sukhatme representation for generating order statistics. Let $F$ denote the cdf of the unit exponential distribution, $F(z) = 1 - e^{-z}$ for $z > 0$, and $F^{-1}(u) = -\ln(1-u)$ for $u \in (0,1)$. Let $F_{NN}$ and $F_{NN}^{-1}$ be neural network approximations of $F$ and $F^{-1}$, respectively. The sampling procedure is detailed in \Cref{alg:sampling_sukhatme}:
+
+\vspace{1em}
+% local comment on nvim
+\begin{algorithm}[H]
+  \caption{Sampling from order statistics $U_{1:N}\leq \dots \leq U_{N:N}$ based on \eqref{eq:sukhatme_sum}}
+  \label{alg:sampling_sukhatme}
+  \SetKwInOut{Input}{Input}
+  \SetKwInOut{Output}{Output}
+  \Input{Learned function $\hat G^{NN}$; $N$ uniform samples $U_1, \dots, U_N$}
+  \Output{$\hat Z_{1:N}, \dots, \hat Z_{N:N}$}
+  Set $\hat U_{0:N} = U_{0:N} = 0$\;
+  \For{$r \gets 1$ \KwTo $N$}{
+    $\hat Z_{r:N} \leftarrow \hat Z_{r - 1:N} + \frac{F_{NN}^{-1}(U_r)}{N - r + 1}$\;
+    \tcp{In parallel: $Z_{r:N} \leftarrow Z_{r - 1:N} + \frac{F^{-1}(U_r)}{N - r + 1}$.}
+  }
+  \Return{$\hat U_{r:N} = F_{NN}(\hat Z_{r:N})$  and $U_{r:N}=F(Z_{r:N})$, for $r\in\{1,\dots,N\}$.}
+\end{algorithm}
+\vspace{1em}
+
+\begin{theorem}
+  \label{prop:sampling_sukhatme}
+  With the sampling strategy of \Cref{alg:sampling_sukhatme}, there exist \newjp{ReLU Neural Networks} $F_{NN}$ and $F_{NN}^{-1}$ such that the error in approximating the uniform order statistics satisfies, in expectation,
+  \begin{equation}
+    \E|U_{r:N} - \hat U_{r:N}| \leq \ve\left[1 +  2\sum_{i=1}^r \frac{1}{N - \newjp{i} + 1}\right],
+  \end{equation}
+  with at most
+  \begin{equation}
+    \mathcal{C}_{\text{Sukhatme}}(\ve) \leq c\ve^{-2}(2\ln(1 / \ve)+1 ) + c\ve^{-1}\ln(1/\ve)(\ln(1 / \ve) + \ln(\ln(1 / \ve)) + 1)
+    \label{eq:sampling_sukhatme}
+  \end{equation}
+  neurons involved, for some constant $c$.
+\end{theorem}
+The proof is provided in \Cref{sec:proof_sukhatme}.
+For $r=N$ (the worst case), the error term admits the asymptotics, as $N\to\infty$:
+\begin{equation}
+  \ve\left[1 +  2\sum_{i=1}^{\newjp{N}} \frac{1}{N - \newjp{i} + 1}\right] \sim \ve\ln(N),
+\end{equation}
+and the complexity term satisfies the following asymptotic results, as $\ve\to 0$:
+\begin{equation}
+  \mathcal{C}_{\text{Sukhatme}}(\ve) \sim 2c\ve^{-2}\ln(\ve^{-1}).
+\end{equation}
+This representation is more advantageous than that of \Cref{prop:sampling_schucany}, as the network complexity scales asymptotically as a polynomial of order $2$ in $\ve^{-1}$ times a logarithmic term.
+
+\paragraph{Discussion.}
+% TODO [INLINE] {add tikz graphical representation for both architectures}
+The two results are not strictly comparable: one yields an error of order $\ve$, while the other yields an error of order $\ve \ln(N)$.
+However, \Cref{alg:sampling_sukhatme} presents a key advantage: it exploits a structural property linking order statistics to linear combinations of \iid exponential variables.
+As a result, the main complexity in neural network approximation is concentrated in accurately simulating unit exponential random variables from standard uniform inputs.
+Moreover, it enables computational reuse: we only need to approximate the inverse cdf function $F^{-1}$, where $Z \sim \mathcal{E}(1)$, rather than approximating $N$ separate functions as required by \Cref{alg:sampling_schucany}.
+
+%-------------------------
 \section{Experiments}
-% Synthetic order statistics (varying dimension)
-% Metrics: W1D, SWD, Spearman, Kendall, sortedness
-% Trade-off analysis: sortedness vs distributional fidelity
+
+In this section, we present a suite of synthetic experiments designed to evaluate the performance of generative models in producing samples of order statistics.
+All results reported here are obtained using synthetic data, allowing us to assess model capabilities under controlled conditions where the ground truth distribution is known.
+Our experimental framework is specifically tailored to test how well different neural network-based generative models---notably various GAN architectures---can approximate the distributional and structural properties of order statistics.
+
+We systematically compare several GAN variants, including classic GANs, Wasserstein GANs (WGAN), and WGANs with gradient penalty (WGAN-GP).
+These models are evaluated exclusively on synthetic datasets, which enables precise quantitative measurement of model performance.
+The data used in our experiments are constructed to exhibit the characteristics of order statistics, as described earlier, providing a rigorous testbed for model assessment.
+
+Our experimental design incorporates a range of evaluation metrics that capture both standard distributional similarity and the sortedness and dependence properties intrinsic to order statistics.
+This approach allows us to identify model strengths and limitations.
+
+The following subsections detail our experimental protocols, model configurations, and results, focusing on synthetic data benchmarks.
+    
+\subsection{Synthetic data}
+
+We begin by recalling a setup for a GAN to learn simple nonlinearities across different synthetic datasets, and then extend this setup to the case of order statistics. This vanilla test case illustrates some design choices for implementation, especially data normalization during training and sampling.
+
+We provide evidence that these models can learn simple multivariate distributions, commonly used for sanity checks in the literature. We then test whether this architecture can learn order statistics. 
+To do so, we quantify performance with respect to two aspects:
+first, the ability of the model to reproduce the marginal distribution of the components;
+second, the ability to reproduce dependence among coordinates. 
+A key structural property of order statistics is that they should be ordered.
+We verify whether the components of the model output are sorted by computing a mean $0 / 1$ value, and then proceed to computation of a softer metric that quantifies the excess.
+    
+
+\subsubsection{GANs, variants and hyperparameters}
+
+
+Generative Adversarial Networks, as introduced by \citet{goodfellow2014}, are trained by playing a minimax game between a generator network $\mathcal{G}$ and a discriminator network $\mathcal{D}$ (dependence on parameters is implicit).
+Namely, both networks optimize the common objective:
+\begin{equation}
+  \min_{\Gcal} \max_{\Dcal} V(\Dcal, \Gcal)\quad\text{where}\quad  V(\Dcal, \Gcal)=\mathbb{E}_{\Xbf \sim p_{\text {data }}}\left[\log \Dcal(\Xbf)\right]+\mathbb{E}_{\Zbf \sim p_{\Zbf}}\left[\log (1-\Dcal(\Gcal(\Zbf)))\right],
+  \label{eq:GAN_objective}
+\end{equation} 
+
+where $p_{data}$ is the underlying distribution of the data and $p_\Zbf$ is the distribution of the latent variable, a distribution that is chosen to be easy to sample from, typically Gaussian or Uniform.
+Throughout this work, we use a uniformly distributed latent variable.
+More details on GANs and variants are given in \Cref{sec:background_gans}.
+Regarding architecture, we consider both networks to be simple \newjp{MLP models}.
+
+\paragraph{Hyperparameters.} The hyperparameters to define in an implementation include the batch size, the latent dimension, the learning rate, the number of epochs, and of course the architectures of both neural networks (generator and discriminator).
+Moreover, a common practice is, at each epoch, to train the generator for \texttt{g\_step} steps and the discriminator for \texttt{d\_step}.
+The following choices are common practice: \texttt{g\_step=1} and \texttt{d\_steps=5}.
+We provide more details on \newjp{hyperparameters in \Cref{sec:hyperparameters}.}
+
+\subsubsection{How accurate is a GAN at approximating order statistics?}
+
+% TODO [ADD] Add gmms for sanity checks
+
+In this section, we seek to find the limitations of the representation power of GANs for modeling order statistics.
+For this purpose, we choose a classic MLP architecture for the networks, illustrate that it can fit a classical benchmark dataset properly, and then assess visually up to which dimension \newjp{the model can} generate proper order statistics.
+We also use this toy-study to discuss the special scaling used.
+\paragraph{Fitting a benchmark dataset.}
+A simple fitting test can be done on the banana-shaped distribution of \parencite{haario1999}, defined as follow: consider $(x_1, x_2)\sim \mathcal{N}(0, I)$ and: 
+
+
+\begin{equation}  \begin{cases}
+  y_1 = x_1 \\
+  y_2 = x_2 + b (x_1^2 - 1)
+  \end{cases}
+  \label{eq:banana_distribution_2d}
+\end{equation}
+
+where \( b \in \mathbb{R} \) controls the curvature of the distribution.
+An illustration of the GAN performance is given in \Cref{fig:banana_gen_2d}.
+
+\begin{figure}[ht]
+  \centering
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \scriptsize
+    \begin{tabular}{ll}
+      \toprule
+      \textbf{Hyperparameter} & \textbf{Value} \\
+      \midrule
+      Latent dimension ($\ell$) & 5 \\
+      Output dimension ($d$) & 4 \\
+      Batch size & 256 \\
+      Learning rate & $1 \cdot 10^{-4}$ \\
+      Epochs & 5,000 \\
+      Discriminator steps ($n_D$) & 5 \\
+      Generator steps ($n_G$) & 1 \\
+      Normalization scale factor & 150 \\
+      Optimizer & Adam \\
+      Activation & LeakyReLU \\
+      \bottomrule
+    \end{tabular}
+    \captionof{table}{Hyperparameters used for training our vanilla model.}
+  \end{minipage}%
+  \hfill
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/genos/banana_2d.png}
+    \captionof{figure}{Real and generated data after min-max renormalization. \texttt{n\_samples=1,000}.}
+    \label{fig:banana_gen_2d}
+  \end{minipage}
+\end{figure}
+
+\subsubsection{Fitting naive model on order statistics}
+
+
+We now take the model obtained from the benchmarking on the banana-shaped distribution to fit order statistics.
+We sample \textit{large} order-statistics:
+\begin{equation}
+  \label{eq:training_data}
+  (X_{N, N},\dots, X_{N-d+1:N}).
+\end{equation}
+
+\paragraph{Normalization scheme.}
+Per-coordinate min–max normalization, while common in GANs, applies different affine maps to each coordinate; real data then leave the sorted manifold, and the generator has no incentive to produce ordered outputs.
+To respect the combinatorial structure of order statistics during learning, we avoid per-coordinate normalizations (e.g., min–max applied separately to each dimension), which apply different affine maps to each coordinate and can flip pairwise differences within a sample. Instead, we use a single \emph{global} affine transform applied jointly to all coordinates: we subtract the global mean computed over the entire training set and rescale by a positive factor $s>0$,
+\begin{equation}
+  \tilde\xbf \;=\; s\,\bigl(\xbf - \bar x\bigr),\qquad \bar x \eqdef \frac{1}{Nd}\sum_{n=1}^N\sum_{j=1}^d x^{(n)}_j.
+\end{equation}
+This mean–scale normalization stabilizes optimization \emph{and} exactly preserves the ordering constraint: for any sample \(\xbf\) and indices $i<j$, $\operatorname{sign}(\tilde x_i-\tilde x_j)=\operatorname{sign}(x_i-x_j)$.
+The scale $s$ is a hyperparameter chosen for numerical convenience and visualization; adding a constant offset after training can further improve plot readability without affecting sortedness.
+We apply the same transform to real and generated data for a fair comparison.
+An illustration of the normalization scheme is provided in \Cref{fig:orderstats_2d}.
+Empirically, the min–max model yields visually plausible marginals, yet many generated points cross the diagonal, signaling broken sortedness.
+With mean–scale normalization, generated samples concentrate strictly below the diagonal. Structural metrics corroborate this observation: the proportion of sorted samples is close to $1.0$. See \Cref{fig:orderstats_2d} for a side-by-side comparison.
+
+\paragraph{Ablation study:  $d=2$.}
+This case targets the top two order statistics $(X_{N:N}, X_{N-1:N})$ with $N{=}500$.
+An illustration of the generated data cloud is provided in \Cref{fig:orderstats_2d}.
+
+
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/genos/real_2d_minmax_dim002.png}
+    \caption{Real data after min-max normalization. \texttt{n\_samples=1,000}.}
+    \label{fig:orderstats_2d_minmax}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/genos/real_2d_meanscale_dim002.png}
+    \caption{Real data after mean–scale normalization. \texttt{scale=75} and \texttt{n\_samples=1,000}.}
+    \label{fig:orderstats_2d_meanscale}
+  \end{subfigure}
+  
+  \vspace{0.8em}
+  \begin{subfigure}[b]{0.62\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/genos/real_gen_2d_meanscale_overlay_gan_dim002.png}
+    \caption{Overlay of real and generated (mean-scale). `n\_samples=1,000`. Real data are blue dots and generated data are orange dots.}
+    \label{fig:orderstats_2d_overlay}
+  \end{subfigure}
+
+  \caption{Comparison of real and generated 2D order statistics under different normalization schemes, with an additional overlay view. The red dashed lines indicate $x=y$; the mean–scale normalization  preserves the sorted structure (no line crossing), while min–max normalization does not.}
+  \label{fig:orderstats_2d}
+\end{figure}
+
+\subsection{Benchmarking on synthetic data}
+
+In this section, we detail our benchmarking study of GAN architectures to model order statistics.
+We consider three baseline variants of GANs: vanilla GAN \parencite{goodfellow2014}, Wasserstein-GAN (WGAN) \parencite{arjovsky2017}, and WGAN with gradient penalty (WGAN-GP) \parencite{wei2018}.
+We evaluate each of the three models over different dimension settings.
+Once the best model is \newjp{selected}, we enhance it with an auxiliary regularization term that proxies the quality of the order-statistics property of the produced data points.
+We then reevaluate the enhanced model against its corresponding base version.
+
+\subsubsection{Evaluating the best model out of the three base models}
+
+\paragraph{Scope of the study.}
+
+We explore the performance of each model in different settings. 
+We proceed to replicate the distribution of \eqref{eq:training_data}, with $N=1000$ and various values of $k$.
+Namely, we first explore dimensions $d=2, 3, 5, 10, 20 \text{ and } 50$ for assessing the best model out of the three base models.
+We choose to use a data set of size $n_{\text{data}} = 32,000$, fixed across dimensions.
+For each variant of implementation, we perform $R=10$ replications and compute, for each replicated model, six metrics on generated datasets.
+
+\paragraph{Metrics.}
+
+Among these six metrics, two are based on a Wasserstein criterion: the Wasserstein 1D (abbr. W1D) and Sliced-Wasserstein Distance (SWD)\newjp{.}
+Two are general dependence metrics: the Spearman's $\rho$ coefficient difference (Spearman) and the Absolute Kendall Error (AKE).
+Finally, two are specifically designed to assess the order-statistics property of the generated samples, the Sortedness and Softsortedness metric.
+% TODO Fix ref toward Appendix
+Precise definitions and background on the metrics are detailed in \newjp{\Cref{sec:metrics}}.
+
+\paragraph{Sweeping with Optuna.}
+
+For exploring the best hyperparameters, we use Optuna \parencite{akiba2019}, a hyperparameter optimization framework.
+We use the default TPE sampler, which models \newjp{the} objective function using a tree-structured Parzen estimator.
+% TODO [TABLE] hyperparameter grid in main text
+We define a grid of hyperparameters over which we perform optimization.
+Details on hyperparameters are given in \newjp{\Cref{sec:hyperparameters}}.
+For each pair of model and dimension, we perform $200$ trials.
+The target metric for TPE sampling is the W1D criteria.
+We provide both the hyperparamter grid and the hyperparameters selected by the sweep in \newjp{\Cref{sec:hyperparameters}}.
+
+\paragraph{Replications.} 
+
+Once the sweep done, we perform $R=10$ replications for each pair of model and dimension.
+We compute each of the six metrics for each of the replications and average over model and dimension.
+Results are provided in \Cref{tab:metrics_replication_table}.
+Best values are in bold.
+
+\paragraph{Results analysis.}
+
+The results of \Cref{tab:metrics_replication_table} provides us the following insights on the performance of models:
+The WGAN-GP underperforms by a wide margin compared to the two other models. 
+On Wasserstein-based metrics, marginal (W1D) and multivariate (SWD), the WGAN outperforms the GAN, except in the vanilla 2 dimensional case.
+This is expected, as the minimization of the Wasserstein distance is embedded in the model’s loss.
+Looking at classical metrics of dependence, namely Spearman and AKE, the GAN seems to outperform the WGAN, except for $d=3$ for the Spearman metric and $d=50$ for the AKE metric.
+However, looking at the specifically designed Sortedness and Softsortedness metrics, GAN performs better in low dimensional settings $d\in\left\{2, 3, 5, 10\right\}$, but WGAN is better for higher dimensional settings $d\in \left\{20, 50\right\}$.
+Furthermost, for higher values of $d$ ($d \in \left\{20, 50\right\}$), performances of GAN is especially poor (values of Sortedness of $4.7\%$ and $0\%$ respectively), whereas values for WGAN stay higher ($51.9\%$ and $50.7\%$ respectively).
+Qualitatively, the pairwise projections in \Cref{fig:meanscale_mosaic,fig:meanscale_dim10} in \Cref{sec:addl-figs} exhibit tight alignment between real and generated samples across dimensions.
+For this reason, we interprete WGAN to be more performant at respecting the order statistics structure in higher dimensions.
+We \newjp{henceforth choose WGAN} as the best performing model and candidate for enhancement in the latter.
+
+
+% 3×2 mosaic of metric tables (cleaner layout)
+\begin{table}[H]
+    \centering
+    \scriptsize
+    % compact but readable tables
+    \setlength{\tabcolsep}{5pt}
+    \renewcommand{\arraystretch}{1.15}
+
+    % Row 1
+    \begin{subtable}[t]{0.47\linewidth}
+        \centering
+        \input{tables/w1d_table}
+        \caption{W1D}
+    \end{subtable}\hfill
+    \begin{subtable}[t]{0.47\linewidth}
+        \centering
+        \input{tables/swd_table}
+        \caption{SWD}
+    \end{subtable}
+
+    \vspace{0.75ex}
+
+    % Row 2
+    \begin{subtable}[t]{0.47\linewidth}
+        \centering
+        \input{tables/spearman_table}
+        \caption{Spearman}
+    \end{subtable}\hfill
+    \begin{subtable}[t]{0.47\linewidth}
+        \centering
+        \input{tables/sortedness_table}
+        \caption{Sortedness}
+    \end{subtable}
+
+    \vspace{0.75ex}
+
+    % Row 3
+    \begin{subtable}[t]{0.47\linewidth}
+        \centering
+        \input{tables/ake_table}
+        \caption{AKE}
+    \end{subtable}\hfill
+    \begin{subtable}[t]{0.47\linewidth}
+        \centering
+        \input{tables/softsorted_table}
+        \caption{Softsortedness}
+    \end{subtable}
+
+    \caption{Summary of metric performances for various models across dimensions.}
+    \label{tab:metrics_replication_table}
+\end{table}
+
+\subsubsection{Order-statistics penalization}
+
+In this section, we enforce WGAN to perform better quality samples with an auxilary regularization term, favoring order statistics samples.
+
+\paragraph{Order statistics penalization (OSP).}
+
+We define the following penalization term:
+
+% --- OSP Loss: LaTeX definition based on code implementation ---
+\begin{equation}
+  \label{eq:penalization_osp}
+  \mathcal{L}_{\text{OSP}}(G) = \mathbb{E}_{z \sim p(z)} \left[ \frac{1}{d-1} \sum_{j=1}^{d-1} \left( \newjp{\max}\left\{ G(z)_j - G(z)_{j+1} + \varepsilon,\, 0 \right\} \right)^2 \right]
+\end{equation}
+
+where $G(z) \in \mathbb{R}^d$ is the generator output, $\varepsilon > 0$ is a small offset constant, and the sum is over consecutive coordinate pairs.
+We include this loss in the loss of the generator during traininer.
+We name this new version WGAN\_OSP.
+
+\paragraph{Results.}
+
+We use the same settings as in the previous section, with the same hyperparameter grid, and we perform a sweep with Optuna to find the best hyperparameters for WGAN\_OSP.
+Resuts for WGAN\_OSP are given along other models in \Cref{tab:metrics_replication_table}.
+We observe that in regard of the Softsortedness metric, WGAN\_OSP outperforms WGAN in three out of the five dimensional settings. 
+This results also in better performance for the Sortedness metric for four out of the five dimensional settings. 
+Regarding W1D and SWD distances, WGAN outperforms for three dimensions, which is expected, as WGAN is only optimizing for the Wasserstein distance.
+Regarding the classical dependence metrics, namely Spearman's $\rho$ and Kendall's $\tau$, WGAN is consistenly better than WGAN\_OSP, but GAN is the overall best model with respectively four and three dimensions in which it is best performing.
+Overall, this study shows that adding a Softsortedness regularization term to WGAN improves its performance on metrics related to actually producing order statistics, while still maintaining competitive results across the board.
 
 \section{Conclusion}
+This work develops a route to generative modeling of ordered statistics.
+Starting from classical probability identities, we showed how two representations of order statistics (Schucany’s top–down recursion and Sukhatme’s exponential spacings) can be leveraged to design neural samplers with explicit capacity/error tradeoffs.
+Concentrating approximation into one scalar inverse–cdf block (with Sukhatme's representation) yields a parameter growth of order \(\mathcal O(\varepsilon^{-2}\log(\varepsilon^{-1}))\) and a coordinate‑wise expected \(L_1\) error that grows only logarithmically with dimension through a harmonic factor.
+The theory clarifies what must be learned (and what does not) when the target distribution lives on the ordered manifold.
 
+On the practical side, we argued that respecting the geometry of order statistics during training is as important as the network architecture.
+A simple global mean–scale normalization preserves pairwise order within each sample and proved crucial to maintain the OS structure under adversarial training.
+Experiments on synthetic OS benchmarks across dimensions demonstrate that standard GAN/WGAN baselines equipped with this normalization achieve competitive performance on classical metrics while improving sortedness; an additional soft order‑violation penalty further tightens structure‑aware metrics with small impact on Wasserstein distances.
+
+There are several avenues for future work.
+First, moving from OS to induced order statistics (IOS) is essential for financial applications in which assets are ranked by an impact factor and paired with returns.
+This calls for learning generative IOS models with the same geometry‑preserving principles.
+Second, a systematic, controlled empirical study that instantiates architectures mirroring the Schucany and Sukhatme constructions would enable direct validation of the predicted scalings (\eg, \(\varepsilon\log N\) error growth and \(\varepsilon^{-2}\log(\varepsilon^{-1})\) parameter counts).
+While feasible, such sweeps are tedious and we leave them to future work.
+Finally, applying these ideas to real impact‑investing datasets will require robust preprocessing, careful evaluation protocols, and domain‑specific stress tests in which IOS simulators can meaningfully inform portfolio construction.
+
+Taken together, our analysis and experiments show that a small amount of structure—codified by probabilistic representations and simple normalization—goes a long way for learning on the ordered manifold.
+We hope this bridges classical order‑statistics theory and modern deep generative modeling, and serves as a foundation for IOS‑aware simulators in sustainable finance.
+
+
+
+
+% \subsection{A study on Real data}
+% The following section is intentionally omitted, as our focus in this work is on synthetic data experiments that allow for controlled assessment of generative modeling performance. Application to real data is left for future work.
+
+\clearpage
+
+% Chapter appendix - reset section counter for appendix numbering
+\setcounter{section}{0}
+\renewcommand{\thesection}{\thechapter.\Alph{section}}
+
+\section{Additional Figures}\label{sec:addl-figs}
+
+\begin{figure}[htbp]
+  \centering
+  % first row
+  \begin{subfigure}[b]{0.45\linewidth}
+    \includegraphics[width=\linewidth]{figures/genos/order_stats_pairplot_gan_dim002_rep000.png}
+    \caption{2D}
+    \label{fig:2d}
+  \end{subfigure}\hfill%
+  \begin{subfigure}[b]{0.45\linewidth}
+    \includegraphics[width=\linewidth]{figures/genos/order_stats_pairplot_gan_dim003_rep000.png}
+    \caption{3D}
+    \label{fig:3d}
+  \end{subfigure}
+
+  \vspace{1em}
+  % second row
+  \begin{subfigure}[b]{0.45\linewidth}
+    \includegraphics[width=\linewidth]{figures/genos/order_stats_pairplot_gan_dim005_rep000.png}
+    \caption{5D}
+    \label{fig:5d}
+  \end{subfigure}
+
+  \caption[Meanscale comparison across dimensions]{%
+    Generated vs. real means for order statistics in various dimensions:
+    (a) 2D, (b) 3D, (c) 5D.
+    Every dimension is scattered against one another.
+    Real data points are in blue and generated data points are in orange.
+  }
+  \label{fig:meanscale_mosaic}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.90\linewidth]{figures/genos/order_stats_pairplot_gan_dim010_rep000.png}
+  \caption{Generated vs. real means for order statistics in dimension $10$.
+    Every dimension is scattered against one another.
+    Real data points are in blue and generated data points are in orange.
+  }
+  \label{fig:meanscale_dim10}
+\end{figure}
+
+\section{Some theory of concomitants}
+\subsection{Representation results for order statistics} \label{subsec:representation_OS}\label{sec:proof_representationos}
+
+\paragraph{Writing order statistics as min and max.}
+
+Following the results in \parencite{banner2008}, order statistics can be written as a combination of min and max.
+The following results holds:
+
+\begin{equation}    
+  X_{k:N}:=\max _{1 \leq i_1<\cdots<i_k \leq N} \min \left\{X_{i_1}, \dots, X_{i_k}\right\}.
+  \label{eq:order_stats_min_max}
+\end{equation}
+
+It is possible to represent min and max with neural network, considering ReLU activation function, that is $\forall x\in\R:\;\sigma(x) = (x)_+ = \max\{0, x\}$, by writing:
+
+\begin{align}    
+  \max\{a, b\} = a + (b - a)_+, \label{eq:min_and_max_representation} \\
+    \min\{a, b\} = - \max\{-a, -b\}.
+\end{align}
+
+Moreover, it is possible to compute min and max over more than two variables by computing recursively:
+
+\begin{equation}  
+    \max\{a_1, \dots, a_N\} = \max\left\{\max\{a_1, \dots, a_{N - 1}\}, a_N\right\}.
+\end{equation}
+
+This formula has the benefit, conversely to further representations in this section, of being fully deterministic.
+However, this comes at a cost: 
+in practice, it is not reasonably feasible to perform computation of \eqref{eq:order_stats_min_max}, as it involves, for the full sorting of vector $(X_{1:N}, \dots, X_{N:N})$, $2^N$ operations.
+
+
+\paragraph{Order statistics as a Markov chain (Schucany form).}
+Order statistics admit a Markovian structure \parencite[Chapter 1, Section 5]{david2004}. For the uniform case, the chain is especially simple in the \emph{top–down} direction. Conditionally on $U_{m+1:N}=x$, the distribution of $U_{m:N}$ on $[0,x]$ is the maximum of $m$ i.i.d. uniforms on $[0,x]$, hence
+\begin{equation}
+  \forall y\in[0,x]:\quad F_{U_{m:N}\mid U_{m+1:N}=x}(y)\;=\;\Bigl(\tfrac{y}{x}\Bigr)^{m},\qquad m=1,\dots,N-1.
+  \label{eq:uniform_markov_cdf}
+\end{equation}
+Equivalently, if $(U_m)_{m=1}^{N}$ are i.i.d.\ $\mathrm{Unif}(0,1)$ independent of $U_{m+1:N}$, then
+\begin{equation}
+  U_{N:N} \;=\; U_{N}^{\,1/N},\qquad U_{m:N} \;=\; U_{m+1:N}\, U_{m}^{\,1/m}\quad (m=N-1,\dots,1).
+  \label{eq:schucany_recursion}
+\end{equation}
+This is precisely Schucany's recursive sampler for uniform order statistics and matches \Cref{eq:sampling_schucany} (identify $m=N-r$ and $U_m\equiv U_r$). Defining the bivariate update
+\begin{equation}
+  G_{m:N}(u,w) \eqdef u\, w^{1/m},\quad m\in[N],
+\end{equation}
+the chain reads $U_{m:N}=G_{m:N}(U_{m+1:N},U_m)$ with $U_{N:N}=G_{N:N}(1,U_N)$, which is the formulation used for our neural approximations in \Cref{alg:sampling_schucany}.
+
+\paragraph{Using standard exponential distributions.}\label{part:sukhatme}
+
+
+Another method for modeling order statistics stems from Sukhatme's representation \parencite[p.17]{david2004}.
+Let $Z_{1:N}\leq\dots \leq Z_{N:N}$ be the order statistics from the standard exponential distribution.
+Then the joint distribution of the $Z_{i:N}$ is :
+
+\begin{equation}
+  N!\exp\left(-\sum_{i=1}^{N}z_i\right),
+\end{equation}
+
+which may be rewritten as \parencite{sukhatme1937}:
+
+\begin{equation}
+  N!\exp{\left(-\sum_{i=1}^N(N - i +1)(z_{i:N} - z_{i-1:N})\right)},
+\end{equation}
+
+with convention $z_{0:N}=0$. 
+Making the transformation 
+
+\begin{equation}  
+  y_i = (N - i + 1)(z_{i:N} - z_{i+1:N}),
+  \label{eq:y_transform}
+\end{equation}
+
+and noting that the range of each $y_i$ is $(0, \infty)$, we see that the $Y_i$ are statistically independent variables, each with pdf \eqref{eq:pdf_unitexpo}.
+The relation \eqref{eq:y_transform} allow $Z_{r:N}$ to be expressed as:
+
+\begin{equation}
+  Z_{r:N} = \sum_{i=1}^r (Z_{i:N} - Z_{i-1:N}) = \sum_{i=1}^r \frac{Y_i}{N - i +1}.
+\end{equation}
+Following the probability integral transformation, we can sample from the standard exponential distribution by sampling from an uniform distribution and applying the inverse cdf $F^{-1}: u\mapsto -\ln(1 - u)$:
+
+\begin{equation}
+  Z_{r:N} = -\ln(1 - U_{r:N}).
+\end{equation}
+
+\subsection{Concomitants of order statistics from a single distribution}
+\subsubsection{Definition}
+
+Let $(X_i,Y_i)_{i=1,\dots,n}$ be a random sample from a bivariate distribution with cdf $F(x,y)$. Let us denote 
+\begin{align}
+X_{r:n}\label{eq:order:stat:X}
+\end{align}
+the $r$-th order statistic (where data have ordered increasingly), for any $r=1,\dots,n$:
+
+\begin{align}
+  X_{1:n}<\cdots<X_{r:n}<\cdots<X_{n:n}.\label{eq:order:stat:X:1}
+\end{align}
+
+When the marginal cdf of $X$ is continuous, this ordering exists and is almost surely unique.
+
+\begin{definition} \label{def:conco}
+  If $X_{r:n}$ corresponds to the data $X_i$, its \emph{concomitant} is denoted by 
+  $$Y_{[r:n]}$$ and corresponds to $Y_i$.
+\end{definition}
+
+This notion was first introduced of \parencite{davidherberta1973} and was called \emph{Induced Order Statistics} (IOS) of \parencite{bhattacharya1974}. See \parencite[Section 6.8]{david2004} for an introduction.
+
+An important use of concomitants corresponds to select  $k< n$ objects $Y$ according to the ranking of their $X$-values.
+
+\subsubsection{Standard properties}
+When $Y_i={\cal R}(X_i,\ve_i)$ like in a general regression model where $X_i$ and $\ve_i$ are independent (see the discussion by \citet[p. 145]{david2004}), we have
+
+\begin{align}
+Y_{[r:n]}={\cal R}(X_{r:n},\ve_{[r:n]}). \label{eq:Yrn}
+\end{align}
+
+When the $(\ve_i)_{1\leq i\leq n}$ are i.i.d. then the $(\ve_{[r:n]})_{1\leq r\leq n}$ are i.i.d. too, see \parencite[Section 4]{kim1990}.
+
+We recall the definition of associated random variables.
+
+\begin{definition}[{\citet[Definition 3.1]{kim1990}}] \label{def:associated}
+    The random variables $X=(X_i)_{1\leq i\leq n}$  are \emph{associated} if:
+    
+    \begin{align}
+        \mathbb{C}ov(f(X),g(X))\geq 0
+    \end{align}
+    
+    for  all non-decreasing (or non-increasing) functions $f$ and $g$ for which the covariance exists.  \\
+    In particular, if $X$ is square integrable, all pairs $(X_i,X_j)$ are non-negatively correlated.
+\end{definition}
+It turns out that the $(Y_{[r:n]})_{1\leq r\leq n}$ in \eqref{eq:Yrn} are associated under some mild conditions.
+
+
+\begin{theorem}[\citet{kim1990}, definition~4.1]\label{thm:Y:associated}
+    Assume that ${\cal R}$ in \eqref{eq:Yrn} is a non-decreasing (or non-increasing) function of both arguments, then 
+    $(Y_{[r:n]})_{1\leq r\leq n}$ are associated.
+\end{theorem}
+
+\subsubsection{Representation theorem under the continuity assumption}
+
+Getting the function ${\cal R}$ can be achieved through the Rosenblatt transformation \parencite{rosenblatt1952}.
+\parencite[Theorem 1]{lo2021} gives an explicit formula for the ${\cal R}$.
+Their representation theorem formula goes beyond \eqref{eq:Yrn} by representing all the concomitants using order statistics of uniformly distributed random variables.
+
+\begin{theorem}\label{th:th1:lo2021}
+    If $X$ and $Y$ have continuous cdf $F_X$ and $F_Y$, with a copula $C$ having a density, we have
+    \begin{align}        
+      (Y_{[1:n]},\dots,Y_{[r:n]},\dots,Y_{[r:n]})\stackrel{d}=(g(U_{1:n},V_1),\dots, g(U_{r:n},V_r),\dots, g(U_{n:n},V_n))\label{eq:th1:lo2021:eq:1}
+    \end{align}
+    where $U_1,\dots,U_n,V_1,\dots,V_n$ are independent random variables uniformly distributed on $[0,1]$.
+    The function $g$ is given explicitly by the formula
+    \begin{align}        
+      g(u,v)=F_Y^{-1}\left( [\partial_{u}C(u,\cdot)^{-1}(v)]\right).\label{th:th1:lo2021:eq:2}
+    \end{align}
+\end{theorem}
+
+Note that in the above theorem, $C$ is uniquely defined since the marginal cdf are continuous.
+
+\subsubsection{Representation theorem without the continuity assumption}
+
+We now state a variant avoiding the continuity assumption of the cdf of $X$ and $Y$. We follow the arguments of \parencite{barrera2025} to well define the quantity under study.
+
+We denote by $\cB_\R$ the Borel sigma algebra on $\R$. We fix a conditional distribution function $
+ \mu: \cB_\R\times \cB_\R\to [0,1]$
+of $Y$ given $X$ 
+\parencite[theorem 5.3, p.84]{kallenberg2002}, and we assume that the function $ \R\times \R\to \R$ defined by $
+(x,y)\mapsto \mu(x,(-\infty,y])$
+is $(\cB_\R \otimes \cB_\R)/\cB_\R$ (i.e.~Borel)-measurable. With these conventions, we will use implicitly the corresponding version
+\begin{align}
+    \P{Y\in \cdot |X}\eqdef \mu(X,\cdot).
+\end{align}
+The conditional quantile of $Y$ given $X=x$ is defined by
+\begin{align}
+    %q_{Y\mid X=x}(v)
+    q_{Y\mid X}(x,v) \eqdef \inf\{y: \mu(x,(-\infty,y])\geq v\},\qquad v\in[0,1].
+\end{align}
+\begin{lemma}
+    The function $(x,v)\in \R\times [0,1]\mapsto  %q_{Y\mid X=x}(v)
+    q_{Y\mid X}(x,v)\in \R$ is $(\cB_\R \otimes \cB_{[0,1]})$-measurable.
+\end{lemma}
+\begin{proof}
+    Given $t\in \R$, since
+    \begin{align}
+        \{ q_{Y\mid X}(x,v)
+        %q_{Y\mid X=x}(v) 
+        \leq t\}=\{\mu(x,(-\infty,t])\geq v\},
+\end{align} 
+we get the result.
+\end{proof}
+
+\begin{theorem}\label{th:th1:lo2021:variant}
+Denote by $F_X$ and $F_Y$ the respective cdf of $X$ and $Y$ (they can be discontinuous). Then
+\begin{align}\label{th:th1:lo2021:variant:eq:1}
+&(Y_{[1:n]},\dots,Y_{[r:n]},\dots,Y_{[n:n]})\\
+&\stackrel{d}=(q_{Y\mid X}(F_X^{-1}(U_{1:n}),V_1),\dots, q_{Y\mid X}(F_X^{-1}(U_{r:n}),V_r),\dots, q_{Y\mid X}(F_X^{-1}(U_{n:n}),V_n))
+\end{align}
+where $U_1,\dots,U_n,V_1,\dots,V_n$ are independent random variables uniformly distributed on $[0,1]$.
+\end{theorem}
+
+\begin{proof}
+The Rosenblatt transformation writes
+\begin{align}
+    (X_i,Y_i:1\leq i\leq n)\stackrel{d}=(F_X^{-1}(U_i),q_{Y\mid X}(X_i,V_i): 1\leq i \leq n).
+\end{align}
+Because the quantile $F_X^{-1}$ is increasing, 
+    \begin{align}
+       (X_{r:n}, Y_{[r,n]}: 1\leq r \leq n)&\stackrel{d}=(F_X^{-1}(U_{r:n}),q_{Y\mid X}(X_{r:n},V_{[r,n]}): 1\leq r \leq n)\\
+       &\stackrel{d}=(F_X^{-1}(U_{r:n}),q_{Y\mid X}(F_X^{-1}(U_{r:n}),V_{[r,n]}): 1\leq r \leq n)
+    \end{align}
+Since the $V_i$'s are i.i.d. we have
+    \begin{align}
+        (V_{[r,n]}:1\leq r\leq n)\stackrel{d}=
+        (V_r:1\leq r\leq n).
+    \end{align}
+In addition, since they are  independent from the $U_i$'s, we get
+    \begin{align}
+        (X_{r:n}, Y_{[r,n]}: 1\leq r \leq n)\stackrel{d}
+        =(F_X^{-1}(U_{r:n}),q_{Y\mid X}(F_X^{-1}(U_{r:n}),V_{r}): 1\leq r \leq n).
+    \end{align}
+\end{proof}
+
+\subsubsection{The case of independent $(X_i,Y_i)$ but with different cdfs $F_i(x,y)$}
+
+In that case, the Rosenblatt transformation write
+\begin{align}
+    (X_i,Y_i:1\leq i\leq n)\stackrel{d}=(F_{X_i}^{-1}(U_i),q_{Y_i\mid X_i}(X_i,V_i): 1\leq i \leq n).
+\end{align}
+
+\subsubsection{The intermediate case of  independent $(X_i,Y_i)$ but with same marginal $X_i$}
+In that case, the Rosenblatt transformation writes
+\begin{align}
+    (X_i,Y_i:1\leq i\leq n)\stackrel{d}=(F_{X}^{-1}(U_i),q_{Y_i\mid X_i}(X_i,V_i): 1\leq i \leq n).
+\end{align}
+
+
+
+
+\section{Some elements on Functional approximation with Neural Network}
+
+\Cref{subsec:representation_OS} provides different computational methodologies for obtaining order statistics.
+A natural question is how well a Neural Network-based method can approximate the obtained functions.
+For quantifying this, we rely on results from the theory of function approximation with Neural Networks.
+\parencite{yarotsky2017} provides several results on how well neural networks are able to approximate smooth functions.
+
+\begin{lemma}[\citet{yarotsky2017}, Proposition~3]
+  Given $M>0$ and $\ve\in(0, 1)$, there exists a ReLU network $\eta$ with two input units that implements a function $\tilde \times : \R^2\to\R$ so that:
+  \begin{itemize}
+    \item for any input $x, y$, if $|x| < M$ and $|y| < M$, then $|\tilde \times(x, y) - xy|\leq \ve$
+    \item if $x=0$ or $y =0$ then $\tilde \times (x, y) =0$
+    \item the depth and the number of weights and computation units in $\eta$ is no greater than $c_1\ln(1/\ve) + c_2$ with an absolut constant $c_1$ and a constant $c_2 = c_2(M)$.
+  \end{itemize}
+  \label{lem:yarotsky_product}
+\end{lemma}
+
+The second proposition gives a result on approximating Sobolev functions with neural network.
+For a function with sufficient conditions, the Sobolev norm is defined as:
+
+\begin{equation}    
+  \|f\|_{\mathcal{W}^{n, \infty}\left([0,1]^d\right)}=\max _{\mathbf{n}:|\mathbf{n}| \leq n} \operatorname{ess}_{\mathbf{x} \in[0,1]^d}\left|D^{\mathbf{n}} f(\mathbf{x})\right|
+\label{eq:Sobolev_norm}
+\end{equation}
+
+and its associated unit-norm class is given by:
+
+\begin{equation}
+    F_{n, d}=\left\{f \in \mathcal{W}^{n, \infty}\left([0,1]^d\right):\|f\|_{\mathcal{W}^{n, \infty}\left([0,1]^d\right)} \leq 1\right\} .
+\end{equation}
+
+The core result of \parencite{yarotsky2017} is the following:
+
+\begin{theorem}[\citet{yarotsky2017}, Theorem~1]\label{th:yarotsky_sobolev}
+    For any $d, n$ integers and $\ve\in(0, 1)$, there exists a ReLU network architecture that:
+    \begin{itemize}
+        \item is capable of approximating any function from $F_{d, n}$ with error $\ve$, 
+        \item has depth at most $c\ln(1/\ve + 1)$ and at most $c\ve^{-d / n}(\ln(1 / \ve) + 1)$ weights and computation units with some constant $c = c(d, n)$. 
+    \end{itemize}
+\end{theorem}
+%TODO: precise analysis of model complexity / precision attained based on the three possibilities \eqref{eq:order_stats_min_max},\eqref{eq:exponential_representation} and \eqref{eq:inverse_conditional} ?}
+
+\section{Proofs}
+\subsection{Proof of \Cref{prop:sampling_schucany}}\label{sec:proof_schucany}
+
+Let's investigate the error induced by the sampling procedure of \Cref{alg:sampling_schucany}.
+Let $r\in[N]$. We are looking to bound the quantity $\Delta V_r = \hat U_{N - r:N} - U_{N - r:N}$.
+
+\begin{align}
+  \Delta V_0 &= 0, \label{eq:delta_vr}\\
+  \Delta V_{r} &= \hat U_{N-r:N} - U_{N - r:N} = \hat G^{NN}_{N - r:N}\left(\hat U_{N - r + 1:N}, U_r\right) - G_{N - r:N}\left(U_{N - r + 1:N}, U_r\right) \\
+  &= \left[\hat G^{NN}_{N - r:N}\left(\hat U_{N - r + 1:N}, U_r\right) - G_{N - r:N}\left(\hat U_{N - r + 1:N}, U_r\right)\right] \\
+  &\;\;+ \left[G_{N - r:N}\left(\hat U_{N - r + 1:N}, U_r\right) - G_{N - r + 1:N}\left(U_{N - r + 1:N}, U_r\right)\right].
+\end{align}
+
+On the one side:
+
+\begin{align}
+  G_{N - r:N}\left(\hat U_{N - r + 1:N}, U_r\right) &- G_{N - r:N}\left(U_{N - r +1:N}, U_r\right) \\
+  &= \left(\hat U_{N - r + 1:N} - U_{N - r + 1:N}\right) U_r^{1 / (N - r)}\\
+  &= \Delta V_{r - 1}U_r^{1 / (N - r)}.
+\end{align}
+
+On the other:
+
+\begin{align}
+  \left|\hat G^{NN}_{N - r:N}\bigl(\hat U_{N -r + 1:N}, U_r\bigr) - G_{N - r:N}\bigl(\hat U_{N - r + 1:N}, U_r\bigr)\right|\\
+  \leq \ve_r := \max_{u_1, u_2\in[0, 1]} \left|\hat G^{NN}_{N - r:N}\bigl(u_1, u_2\bigr) - G_{N - r:N}\bigl(u_1, u_2\bigr)\right|.
+\end{align}
+
+Thus for $1\leq r\leq N$:
+\begin{equation}  
+  \left|\Delta V_{r}\right| \leq \left|\Delta V_{r - 1} \right|U_r^{1 / (N-r)} + \ve_r.
+  \label{eq:1stbound_deltaV}
+\end{equation}
+
+\begin{lemma}
+  \begin{equation}
+    \label{eq:2ndbound_deltaV}
+    \text{For } \;1 \leq r \leq N:\;\left|\Delta V_{r}\right| \leq \sum_{i=0}^r \ve_i\prod_{j=i + 1}^{r}U_j^{1 / (N - j)},
+  \end{equation}
+  with convention $\ve_0=0$.
+
+\end{lemma}
+
+\begin{proof}
+  The proof goes by induction:
+  \begin{itemize}
+    \item $r=0$:
+    \eqref{eq:1stbound_deltaV} writes:
+    \begin{equation}
+      \left|\Delta V_1\right| \leq \left|\Delta V_0\right| U_1^{1/N} + \ve_1 = \ve_1,
+    \end{equation}
+    as $\Delta V_0$ = 0, which is the announced result.
+    \item Suppose that \eqref{eq:2ndbound_deltaV} holds true for $0\leq r \leq N - 1$. Then:
+    \begin{align}
+      \left|\Delta V_{r+1}\right| &\leq \left|\Delta V_{r}\right|U_{r+1}^{1 / (N - r -1)} + \ve_{r + 1} \\
+      &\leq \left(\sum_{i=0}^r \ve_i\prod_{j=i + 1}^{r}U_j^{1 / (N - j)}
+      \right)U_{r+1}^{1 / (N -r - 1)} + \ve_{r+1} \label{ineq:hypothesis} \\
+      &=\sum_{i=0}^{r+1} \ve_i\prod_{j=i + 1}^{r+1}U_j^{1 / (N - j)}.
+    \end{align}
+    The result is thus proved. 
+  \end{itemize}
+
+\end{proof}
+
+A direct computation yields $\E\left[ U^{1 / (N - j)}\right] = \frac{N - j}{N - j + 1}$ and thus
+\begin{align}
+  \E\left|\Delta V_{r}\right| &\leq \sum_{i=0}^r \ve_i\prod_{j=i+1}^{r}\frac{N - j}{N - j + 1}  \\
+    &= \sum_{i=0}^r \ve_i\frac{N - r}{N - i }.\label{eq:sum_eps_i}
+\end{align}
+
+Let's investigate $\ve_i$.
+We are looking to the best appoximation of the function $G_{N - r:N}(u_1, u_2) = u_1\cdot u_2^{1 / (N - r)}$.
+On the one side, the function 
+\begin{equation}
+  \phi_r:u\in [0, 1]\mapsto u^{1 / (N - r)}
+\end{equation} 
+is $\zeta_r:= 1/ (N -r)$ Holder continuous, (the space of Holder continuous functions writes $C^{0, \zeta_r}([0, 1])$), with Holder constant 1.
+
+
+Define the ReLU function as $\sigma^R(x) := \max(0, x)$. Then denote the triangular function by:
+\[
+\widehat{\sigma}^R(x) := \sigma^R(x + 1) - 2\sigma^R(x) + \sigma^R(x - 1) =
+\begin{cases}
+  1 + x, & \text{if } -1 \le x \le 0, \\
+  1 - x, & \text{if } 0 \le x \le 1, \\
+  0,     & \text{otherwise}.
+\end{cases}
+\]
+Note that the triangular function can be approximated by a \newjp{ReLU} Neural Network with three neurons, see \parencite{allouche2025}.
+We also have the following result:
+
+\begin{lemma}[\citet{allouche2025}, Lemma~8]
+  Let $\widehat{\sigma}^R$ be a triangular function, $\tau \in (0,1)$ and $f \in C^{0,\xi}([0,\tau])$ with $\xi \in (0,1]$. For all $M \in \mathbb{N} \setminus \{0\}$, let $h = \tau / M$ and $u_j = jh$ for $j \in \{0, \dots, M\}$. Then,
+  \[
+  \sup_{u \in [0,\tau]} \left| f(u) - \sum_{j=0}^M f(u_j) \widehat{\sigma}^R\left( \frac{u - u_j}{h} \right) \right| \leq H_f \left( \frac{\tau}{M} \right)^\xi,
+  \]
+  where $H_f$ is the Hölder constant associated with $f$.
+  This contruction involves $3(M + 1)$ neurons. 
+\end{lemma}
+
+This result thus applies to functions $\phi_r$, with $\tau = 1$ 
+and we denote the approximation of $\phi_r$ by $\hat \phi_r$ .
+To obtain the minimal number of neuron sufficient for a given precision, let's write the error $\ve$:
+\begin{align}
+  \ve &\leq (1 / M)^{\zeta_r} \; \Rightarrow\; M \geq 1 / \ve^{N -r} \; \Rightarrow \; M = \left\lceil1 / \ve^{N -r}\right\rceil.
+\end{align}
+
+Thus a neural network with 
+\begin{equation}
+  3(M + 1)=3\left(\lceil 1 / \ve^{N-r}\rceil + 1\right)
+\end{equation}
+neurons is able to approximate the function $\phi_r$ with precision $\ve$ and a neural network with 
+  $\lceil (2 / \ve)^{N-r}\rceil + 1$
+neurons is able to approximate the function $\phi_r$ with precision $\ve/2$.
+Now, for the multiplicative term, we invoke \Cref{lem:yarotsky_product}, which writes as follows in this context:
+
+A neural network $\eta_r$ with $c_1\ln(8/\ve) + c_2$ weights with an absolute constant $c_1$ and a constant $c_2 = c_2(M)$, with $M=1$ here, is able to learn $\tilde\times_r(x, v) = x\cdot v$ with precision $\ve/8$.
+
+Now consider
+\begin{equation}
+  \hat G_{N - r:N}^{NN}(u_1, u_2) = \tilde\times_r(u_1, \phi_r(u_2)).
+\end{equation}
+Then:
+
+\begin{align}
+  \left|\hat G_{N - r:N}^{NN}(u_1, u_2) - G_{N - r:N}(u_1, u_2)\right| &= \left|u_1\cdot u_2^{1/(N - r)} - \tilde \times_r(u_1, \phi_r(u_2)) \right|\\
+    &\leq \left|\tilde \times_r(u_1, \phi_r(u_2)) - \tilde \times_r(u_1, u_2^{1 / (N - r)})\right| \label{eq:approx_G}\\
+  &+ \left|\tilde \times_r(u_1, u_2^{1 / (N-r)}) - u_1\cdot u_2^{1 / (N -r)}\right|.
+\end{align}
+
+The second term is $\leq \ve/8$ by construction of $\tilde \times_r$. 
+Let's look at the first:
+\begin{align}
+  \left|\tilde \times_r\left(u_1, \phi_r(u_2)\right) - \tilde\times_r\left(u_1, u_2^{1 / (N-r)}\right)\right| &\leq \left|\tilde \times_r\left(u_1, \phi_r(u_2)\right) - u_1\cdot \phi_r(u_2)\right| \label{eq:term1} \\
+  & + \left|u_1\phi_r(u_2) - u_1 \cdot u_2^{1 / (N - r)}\right| \label{eq:term2}\\
+  & + \left|u_1\cdot u_2^{1 / (N-r)} - \tilde \times_r(u_1, u_2^{1 / (N-r)})\right| \label{eq:term3} \\
+  &\leq 3\ve/4,
+\end{align}
+
+where \eqref{eq:term1}, \eqref{eq:term3} $\leq \ve/8$ by construction of $\tilde\times$, \eqref{eq:term2} $\leq\ve/2$ by construction of $\phi_r$ and because $0\leq x\leq 1$  .
+Together with \eqref{eq:approx_G}:
+
+\begin{equation}
+  \forall u_1, u_2\in[0,1]:\;\left|\hat G_{N - r:N}^{NN}(u_1, u_2) - G_{N - r:N}(u_1, u_2)\right|\leq 3\ve/4 + \ve/8 = 7\ve/8 <\ve.
+\end{equation}
+
+\begin{lemma} \label{lemma:approx_G}
+  Let $\ve > 0$, $N\in \N^*$ and $r\in[N]$.
+  A feedforward ReLU Neural Network $\hat G_{N -r:N}^{NN}$  with:
+  \begin{equation}
+    3(\lceil(2/\ve)^{N-r}\rceil+1) + c_1\ln(8/\ve)+c_2
+  \end{equation} 
+  neurons is able to approximate $G_{N - r:N}$ with precision $\ve$.
+\end{lemma}
+
+Back to~\eqref{eq:sum_eps_i}: choosing for $i\in[r], \ve>0$, $\ve_i = \frac{(N - r) }{r(N - i)}\ve$, we get $\E|\Delta V_{r}|\leq\ve$ and thus we obtain \Cref{prop:sampling_schucany} by summing over $i$.
+
+\subsection{Proof of \Cref{prop:sampling_sukhatme}}\label{sec:proof_sukhatme}
+
+Let's investigate the quality of approximation of the scheme in \Cref{alg:sampling_sukhatme}.
+For a starter, let's look into the quality of approximation of the function $F^{-1}:u\mapsto - \ln(1-u)$ with a neural network.
+For this sake, \newjp{consider $\ve \in [0, 1]$} and introduce the function :
+
+\begin{equation}  
+  \tilde F^{-1}_\ve: \left\{
+  \begin{array}{l}
+    -\ln(1-u) \text{ if } u\in [0, 1-\ve],\\
+    F^{-1}(1-\ve)=-\ln(\ve) = \ln(1/\ve) \text{ if } u\in [1-\ve, 1].
+  \end{array}
+  \right .
+  \label{eq:ftilde}
+\end{equation}
+
+The function $\ve \cdot\tilde F^{-1}_\ve$  is in  $F_{1, 1}$.
+Indeed, $\forall u \in [0,1]:$
+\begin{align}
+  |\ve\tilde F^{-1}_\ve(u)| \leq \ve\tilde F^{-1}_\ve(1 - \ve) &= \ve \ln(1 / \ve) \leq \ve \left(\frac{1}{\ve} - 1\right) = 1 - \ve,\\
+  |(\ve\tilde F^{-1}_\ve)'(u)| = |\ve\tilde F'_\ve(u)|I\left\{u\in[0, 1-\ve]\right\} &= \ve / (1 - u)I\left\{u\in[0, 1-\ve]\right\} \leq 1.
+\end{align}
+
+Therefore, the assumptions of \Cref{th:yarotsky_sobolev} are met.
+We apply it to $\ve\tilde F^{-1}_\ve$ with precision $\ve^2$, which writes:
+
+There exists a ReLU network $\eta_{NN}$ that:
+    \begin{itemize}
+        \item is capable of approximating $\ve\tilde F_\epsilon$ with error $\ve^2$, \ie:
+        \begin{align}
+          \max_{u\in[0, 1 - \ve]}\left|\ve\tilde F^{-1}_\ve(u) - \eta_{NN}\right|\leq \ve^{2}
+        \end{align}
+        \item has depth at most $c\left(\ln(1/\ve^2 + 1)\right)$ and at most 
+        \begin{equation}
+          c\left(\ve^{2}\right)^{-1}(\ln(1 / \ve^2) + 1) =c\ve^{-2}(2\ln(1 / \ve) + 1)
+        \end{equation}
+        weights and computation units with some constant $c = c(1, 1)$. 
+    \end{itemize}
+
+    Thus, multiplying the obtained neural network by $1/\ve$, we get that:
+    \begin{align}
+      \max_{u\in[0, 1 - \ve]}\left|\tilde F^{-1}_\ve(u) - 1/\ve\cdot\eta_{NN}(u)\right| \leq \ve
+    \end{align}
+    And thus the following result holds:
+
+    There exists a ReLU network architecture $\eta_{NN}$ (we reuse the notation $\eta_{NN}$) such that:
+    \begin{itemize}
+        \item is capable of approximating $\tilde F^{-1}_\ve$ with error $\ve$, 
+        \item has depth at most $c(\ln(1/\ve^2) + 1)$ and at most 
+        \begin{equation}
+          c\left(\ve^{2}\right)^{-1}(\ln(1 / \ve^2) + 1) =c\ve^{-2}(2\ln(1 / \ve) + 1)
+        \end{equation}
+        weights and computation units with some constant $c = c(1, 1)$.
+    \end{itemize}
+
+Note that the Neural Network $\eta_{NN}$ is defined on $[0, 1 - \ve]$.
+We artificially set its value on the interval $[1 - \ve, 1]$ to $\eta_{NN}(u) = F^{-1}(1 - \ve) = - \ln(\ve)$.
+Now consider a standard uniform variable $U$. 
+We investigate the mean error between $Z = F^{-1}(U)$ (which is $\mathcal{E}(1)$) and its approximation $\hat Z = \eta_{NN}(U)$.
+We have that:
+
+\begin{align}
+  \E_U\left|Z - \hat Z\right|&=\int_0^1\left|F^{-1}_Z(u) - \eta_{NN}(u)\right| du\\
+  &= \int_0^{1 - \ve}\left|F^{-1}_Z(u) - \eta_{NN}(u)\right| du + \int_{1 - \ve}^1\left|F^{-1}_Z(u) - \eta_{NN}(u)\right| du. \label{eq:t1}
+\end{align}
+
+First the LHS of \eqref{eq:t1}:
+\begin{align}
+  \int_0^{1 - \ve}\left|F^{-1}_Z(u) - \eta_{NN}(u)\right| du \leq  \int_0^{1 - \ve}\left\|F^{-1}_Z - \eta_{NN}\right\|_\infty du \leq \ve,
+\end{align}
+by construction of $\eta_{NN}$ and \Cref{th:yarotsky_sobolev} and second the RHS of \eqref{eq:t1}:
+\begin{align}
+  \int_{1 - \ve}^1\left|F^{-1}_Z(u) - \eta_{NN}(u)\right| du &= \int_{1 - \ve}^1\left|-\ln(1 - u) + \ln(\ve)\right| du\\
+  &= \int_{1 - \ve}^1 \left[\ln(\ve) - \ln(1 - u)\right]du \\
+  &= \ve \ln(\ve) - \int_{1 - \ve}^1\ln\left(1 - u\right)du = \ve, \text{ after integration}.
+\end{align}
+
+Together, 
+\begin{align}
+  \E_U\left|Z - \hat Z\right|\leq 2\ve.
+\end{align}
+
+Therefore, 
+\begin{align}
+  \E\left|Z_{r:N} - \hat Z_{r:N}\right| &= \E\left|\sum_{i=1}^r \frac{Y_i}{N - r + 1} - \sum_{i=1}^r \frac{\hat Y_i}{N - r + 1}\right|\\
+    &\leq \sum_{i=1}^r \frac{\E|Y_i - \hat Y_i|}{N - r + 1} \leq 2\ve\sum_{i=1}^r 1/(N - r + 1).\label{eq:bound_Z_r}
+\end{align}
+
+We now consider approximation of the function $F$.
+As for the inverse $\tilde F_\ve$, we will construct a suitable function to which we can apply Yarotsky's result.
+For $F$, the construction is a bit more subtle:
+Let $\ve\in[0,1]$.
+We consider its restriction to $F$ to $[0, \ln(1 / \ve)]$, and therefore define the function $\tilde F_\ve$ as follows:
+
+\begin{equation}
+  \text{for } x\geq 0: \; \tilde F_\ve(x) = \frac{F\left(\ln(1 / \ve)x\right)}{\ln\left(1 / \ve\right)}.\\
+\end{equation}
+
+The function $\tilde F_\ve$ is in $F_{1, 1}$.
+Indeed $\tilde F_\ve(x)\in[0, 1]$ and $\tilde F_\ve(x) = e^{-\ln(1 / \ve)x}\in[0,1]$.
+Therefore, \Cref{th:yarotsky_sobolev} applies to $\tilde F_\ve$.
+We apply it to $F_\ve$ with error $\ve / \ln(1 / \ve)$, which writes out:\\
+There exists a ReLU Neural Network $\eta_{NN}$ (we reuse the notation $\eta_{NN}$) such that:
+    \begin{itemize}
+      \item is capable of approximating $\tilde F_\ve$ with error $\ve / \ln(1 / \ve)$, 
+        \item has depth at most $c\ln\left(\frac{\ln(1 / \ve)}{\ve} + 1\right)$ and at most 
+        \begin{equation}
+          c\left(\ve / \ln(\ve)\right)^{-1}\!\left(\ln\!\left(\frac{\ln(1 / \ve)}{\ve}\right) + 1\right) = c\ve^{-1}\ln(1/\ve)\bigl(\ln(1 / \ve) + \ln(\ln(1 / \ve)) + 1\bigr)
+        \end{equation}
+         weights and computational units, for some constant $c = c(1, 1)$.
+    \end{itemize}
+
+    Finally, doing the converse operation of rescaling on the neural network $\eta_{NN}$, that is considering (we reuse the notation $\eta_{NN}$): 
+    \begin{equation}
+      \eta_{NN} (x)= \ln(1 / \ve)\eta^{\text{old}}_{NN}\left(\frac{x}{\ln(1 / \ve)}\right)
+    \end{equation}, we get that, $\forall x > 0$:
+
+    \begin{equation}
+      |F(x) - \ln(1 / \ve)\eta^{\text{old}}_{NN}\!\left(x / \ln(1 / \ve)\right)| = |F(x) - \eta_{NN}(x)| \leq \ve.
+      \label{eq:bound_F_Z}
+    \end{equation}
+
+    Now, noting  $U_{r:N} = F(Z_{r:N})$ and $\hat U_{r:N} = \eta_{NN}(\hat Z_{r:N})$:
+    \begin{align}
+      |U_{r:N} - \hat U_{r:N}| = |F(Z_{r:N}) - \eta_{NN}(\hat Z_{r:N})| &\leq |\eta_{NN}(\hat Z_{r:N}) - F(\hat Z_{r:N})| + |F(\hat Z_{r:N}) - F\left(Z_{r:N}\right)|\\
+      &\leq \ve + |\hat Z_{r:N} - Z_{r:N}|
+    \end{align}
+    where the LHS holds in virtue of \eqref{eq:bound_F_Z} and the RHS because $F$ is a $1$-Lipschitz function.
+    Taking expectations on both sides:
+
+    \begin{align}
+      \E|U_{r:N} - \hat U_{r:N}| \leq \ve + \E|Z_{r:N} - \hat Z_{r:N}|&\leq \ve + 2\ve\sum_{i=1}^r \frac{1}{N - r + 1}\\
+      &= \ve\left[1 +  2\sum_{i=1}^r \frac{1}{N - r + 1}\right].
+    \end{align}
+
+    The total number of neurons involved for the computation of $\hat U_{r:N}$ with this precision is :
+
+    \begin{align}
+      c\ve^{-2}(2\ln(1 / \ve)+1 ) + c\ve^{-1}\ln(1/\ve)(\ln(1 / \ve) + \ln(\ln(1 / \ve)) + 1),
+    \end{align}
+    which achieves the proof of \Cref{prop:sampling_sukhatme}.
+
+
+
+
+\section{Experiments}
+\subsection{More background on GANs}
+\label{sec:background_gans}
+
+This appendix summarizes the adversarial training objectives used in our experiments and highlights practical details for stability.
+
+\paragraph{GAN objective.}
+Given a data distribution $p_{\text{data}}$ and a latent prior $p_{\Zbf}$, the vanilla GAN objective (see \Cref{eq:GAN_objective}) defines a two-player minimax game between a discriminator $\Dcal$ and a generator $\Gcal$. In practice, the non-saturating generator loss is often used to obtain stronger gradients early in training:
+\begin{equation}
+  \min_{\Gcal} \;\mathbb{E}_{\Zbf\sim p_{\Zbf}}\bigl[-\log \Dcal(\Gcal(\Zbf))\bigr].
+  \label{eq:gan_ns}
+\end{equation}
+At equilibrium with idealized capacity, the generator recovers $p_{\text{data}}$ and the discriminator outputs $1/2$ \parencite{goodfellow2014}. Training instabilities and mode collapse are common; Section~\Cref{sec:hyperparameters} records our simple, robust choices.
+
+\paragraph{Wasserstein GAN (WGAN).}
+The WGAN replaces the Jensen–Shannon divergence implicit in the vanilla objective with the Wasserstein-1 distance. Using the Kantorovich–Rubinstein duality, the critic $\Dcal$ is constrained to be 1-Lipschitz and optimized via
+\begin{equation}
+  \max_{\lVert \Dcal \rVert_{\text{Lip}}\le 1}\;\E_{\Xbf\sim p_{\text{data}}}[\Dcal(\Xbf)]-\E_{\Zbf\sim p_{\Zbf}}[\Dcal(\Gcal(\Zbf))],\quad
+  \min_{\Gcal}\; -\E_{\Zbf\sim p_{\Zbf}}[\Dcal(\Gcal(\Zbf))].
+  \label{eq:wgan_dual}
+\end{equation}
+The resulting gradients are more informative when supports are disjoint, improving convergence \parencite{arjovsky2017}. The original implementation enforced the Lipschitz constraint by weight clipping, which can harm capacity and lead to optimization issues.
+
+\paragraph{WGAN with Gradient Penalty (WGAN-GP).}
+To avoid weight clipping, \citet{wei2018} propose penalizing the deviation of the gradient norm from 1 along lines interpolating between real and generated samples. Writing $\tilde{\Xbf}=\Gcal(\Zbf)$, $\hat{\Xbf}=\epsilon\,\Xbf+(1-\epsilon)\,\tilde{\Xbf}$ with $\epsilon\sim\mathcal U[0,1]$, the critic maximizes
+\begin{equation}
+  \E_{\Xbf}[\Dcal(\Xbf)]-\E_{\Zbf}[\Dcal(\Gcal(\Zbf))]-\lambda\,\E_{\hat{\Xbf}}\Bigl(\lVert \nabla_{\hat{\Xbf}}\Dcal(\hat{\Xbf})\rVert_2-1\Bigr)^2.
+  \label{eq:wgan_gp}
+\end{equation}
+This penalty enforces the 1-Lipschitz property more effectively and stabilizes training across architectures and datasets.
+
+\subsection{Hyperparameters}
+
+- Update ratio: several critic steps per generator step (e.g., $n_D{=}5$, $n_G{=}1$).
+- Optimizers: Adam with small learning rate and $\beta_1\in[0, 0.5]$ works well for adversarial training.
+- Regularization: gradient penalty (WGAN-GP) improves stability; spectral normalization is an alternative 1-Lipschitz control.
+- Activations: LeakyReLU for critic; generator activations as in Section~\Cref{sec:hyperparameters}.
+- Evaluation: rely on distributional metrics (e.g., W1D, SWD) and structure-aware scores (e.g., sortedness) discussed in Section~\Cref{sec:metrics}.
+
+See Appendix~\Cref{sec:background_gans} for a concise primer on GANs, WGAN, and WGAN-GP, including objectives, constraints, and training tips.
+\label{sec:hyperparameters}
+
+\subsection{Metrics}
+\label{sec:metrics}
+
+We evaluate generative fidelity and structure with six metrics. Throughout, let real samples be \(\{\xbf^{(n)}\}_{n=1}^N\subset\R^d\) and generated samples \(\{\ybf^{(n)}\}_{n=1}^N\subset\R^d\). Unless stated otherwise, we adopt a \emph{descending} order convention when focusing on the largest order statistics.
+
+\paragraph{Wasserstein 1D (W1D).}
+For each coordinate \(j\in[d]\), we compute the empirical 1-Wasserstein distance between the marginal distributions by matching order statistics. Let \(x_{j}^{n:N}\) and \(y_{j}^{n:N}\) denote the \(n\)-th order statistics (ascending) of \(\{x_{j}^{(n)}\}_{n=1}^N\) and \(\{y_{j}^{(n)}\}_{n=1}^N\), respectively. The reported score is the average over coordinates:
+\begin{equation}
+  \widehat{\mathrm{W1D}} \;=\; \frac{1}{Nd}\sum_{j=1}^{d}\sum_{n=1}^{N} \bigl| x_{j}^{n:N} - y_{j}^{n:N} \bigr|.
+\end{equation}
+This equals the empirical 1D Wasserstein distance per marginal, averaged across dimensions; it is invariant to permutations within each marginal sample.
+
+\paragraph{Sliced-Wasserstein Distance (SWD).}
+We approximate the 1-Wasserstein distance between the real and generated joint distributions via random 1D projections. Draw unit vectors \(\vbf_\ell\in\mathbb S^{d-1}\), \(\ell=1,\dots,L\), project \(u^{(n)}_\ell=\langle\xbf^{(n)},\vbf_\ell\rangle\) and \(v^{(n)}_\ell=\langle\ybf^{(n)},\vbf_\ell\rangle\), sort each set to obtain order statistics \(u_{\ell}^{n:N}\) and \(v_{\ell}^{n:N}\), and average the 1D distances:
+\begin{equation}
+  \widehat{\mathrm{SWD}} \;=\; \frac{1}{LN}\sum_{\ell=1}^{L}\sum_{n=1}^{N} \bigl| u_{\ell}^{n:N} - v_{\ell}^{n:N} \bigr|.
+\end{equation}
+As \(L\) increases, this Monte Carlo estimator tightens; SWD is sensitive to global geometry while remaining computationally light.
+
+\paragraph{Pairwise Spearman difference.}
+To assess monotone dependence, we compare pairwise Spearman rank correlations between real and generated data. For each pair \((i,j)\), let \(\rho^{\mathrm{real}}_{ij}\) and \(\rho^{\mathrm{gen}}_{ij}\) denote Spearman's \(\rho\). The metric is the mean absolute discrepancy over all pairs:
+\begin{equation}
+  \mathrm{Spearman\;diff} \;=\; \frac{2}{d(d-1)}\sum_{1\le i<j\le d} \bigl|\rho^{\mathrm{real}}_{ij}-\rho^{\mathrm{gen}}_{ij}\bigr|.
+\end{equation}
+Being rank-based, it is invariant to strictly monotone marginal transforms.
+
+\paragraph{Sortedness.}
+Order statistics must be sorted. We report the proportion of generated samples that satisfy the coordinate-wise descending order \(y^{(n)}_1\ge y^{(n)}_2\ge\cdots\ge y^{(n)}_d\):
+\begin{equation}
+  \mathrm{Sortedness} \;=\; \frac{1}{N}\sum_{n=1}^{N} \mathbb{I}\bigl\{ y^{(n)}_k - y^{(n)}_{k+1} \ge 0,\; \forall k\in[d-1] \bigr\}.
+\end{equation}
+This hard score equals 1 only if all generated vectors respect the ordering constraint.
+
+\paragraph{Absolute Kendall Error (AKE).}
+To compare distributions of order statistics, we sort each sample vector in descending order and compute the mean absolute deviation between the resulting order-statistic vectors:
+\begin{equation}
+  \mathrm{AKE} \;=\; \frac{1}{Nd}\sum_{n=1}^{N}\sum_{k=1}^{d} \bigl| \mathrm{sort}_{\downarrow}(\xbf^{(n)})_k - \mathrm{sort}_{\downarrow}(\ybf^{(n)})_k \bigr|.
+\end{equation}
+This captures alignment of empirical order-statistic marginals; lower is better.
+
+\paragraph{Softsortedness.}
+As a differentiable proxy for the sortedness constraint, we average the positive violations of the descending order:
+\begin{equation}
+  \mathrm{SoftSorted} \;=\; \frac{1}{N(d-1)}\sum_{n=1}^{N}\sum_{k=1}^{d-1} \bigl[\, y^{(n)}_{k+1}-y^{(n)}_{k} \,\bigr]_+, \quad [t]_+\eqdef\max\{0,t\}.
+\end{equation}
+This penalty is zero if and only if every generated vector is sorted in descending order and increases linearly with the magnitude of violations.
+
+% Reset section numbering for next chapter
+\renewcommand{\thesection}{\thechapter.\arabic{section}}

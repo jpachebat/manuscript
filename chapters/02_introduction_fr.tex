@@ -1,48 +1,406 @@
-% Chapitre 2: Introduction (Version française)
-% Traduction du Chapitre 1 — même contenu, pas de modifications
+% Chapitre 1: Introduction (Version française)
+% Longueur cible: 15 pages
+% Structure suivant le plan approuvé en respectant les directives EDMH
 % ----------------------------------------------------------------------
 
-% TODO: Traduire le contenu de 01_introduction.tex une fois finalisé
+\section{Contexte et motivation}
+\label{sec:intro-context-fr}
 
-\section{Contexte et Motivation}
-% Traduction de "Context and Motivation"
+\subsection{La structure dans les données statistiques}
+\label{sec:intro-structure-fr}
 
-\section{Trois Régimes Structurels}
-% Traduction de "Three Structural Regimes"
+Le terme \emph{statistique} dérive de l'allemand \emph{Statistik}, forgé par Gottfried Achenwall en 1748 pour désigner la «~science de l'État~»~: gouverner nécessitait une information organisée. Les données sont la matière première de la statistique. Un scientifique mesure la température en plusieurs endroits~; une banque enregistre les rendements journaliers des actifs d'un portefeuille~; un hôpital collecte les signes vitaux des patients. Dans chaque cas, nous disposons de plusieurs observations, et chaque observation peut comprendre plusieurs quantités liées entre elles. Ces quantités sont organisées de manières spécifiques, régies par des régularités sous-jacentes. Découvrir ces régularités est la tâche de la science statistique.
 
-\subsection{Valeurs Extrêmes et Dépendance de Queue}
-% Traduction de "Extreme Values and Tail Dependence"
+Ce processus admet une formulation mathématique claire. Nous notons $n$ observations par $X_1, \ldots, X_n$. Chaque $X_i$ est un \emph{vecteur}~: une liste de nombres représentant les quantités mesurées. Nous supposons que ces observations sont gouvernées par une loi sous-jacente. Mathématiquement, cette loi est une \emph{distribution de probabilité}, que nous notons $P$. La distribution spécifie la probabilité de chaque résultat possible. Elle est inconnue~; apprendre à la connaître est le problème central.
 
-\subsection{Statistiques d'Ordre et Contraintes de Rang}
-% Traduction de "Order Statistics and Ranking Constraints"
+L'objectif de la \emph{statistique} est d'inférer des propriétés de $P$ à partir des observations~: estimer ses paramètres, tester des hypothèses sur sa forme, quantifier l'incertitude. L'objectif de la \emph{modélisation générative} est plus ambitieux~: produire de nouvelles données synthétiques qui auraient plausiblement pu provenir de la même source, indiscernables des observations authentiques.
 
-\subsection{Distributions Tilted et Réglage Fin de Modèles}
-% Traduction de "Reward-Tilted Distributions and Model Fine-Tuning"
+Mais les données portent une \emph{structure}~: des dépendances entre variables, des contraintes sur leurs valeurs, des propriétés qui définissent le phénomène lui-même. Un modèle génératif fidèle doit respecter cette structure, et non simplement approximer la loi globale.
 
-\section{Contexte en Modélisation Générative}
-% Traduction de "Generative Modeling Background"
 
-\subsection{Réseaux Antagonistes Génératifs (GANs)}
-% Traduction de "Generative Adversarial Networks"
+\subsection{La modélisation générative moderne}
+\label{sec:intro-genmod-fr}
 
-\subsection{Modèles de Diffusion et Score}
-% Traduction de "Diffusion and Score-Based Models"
+À partir de données, pouvons-nous apprendre à en générer davantage~? Non pas simplement calculer des moyennes, mais produire de nouvelles données qui semblent provenir de la même source~? C'est la question de la \emph{modélisation générative}.
 
-\subsection{Approximation Universelle et ses Limites}
-% Traduction de "Universal Approximation and Its Limits"
+Lorsque les observations comportent de nombreuses composantes (températures en des centaines de lieux, rendements de milliers d'actifs), décrire directement la loi $P$ devient impraticable. La modélisation générative moderne emprunte une voie différente~: plutôt que de décrire $P$ explicitement, nous apprenons à produire des données qui en sont issues. L'idée centrale est~:
+\[
+    G(Z) \sim P.
+\]
+Ici, $Z$ est une source d'aléa, comme lancer des dés ou tirer selon une courbe en cloche. La transformation $G$ convertit cet aléa en quelque chose qui ressemble aux données. Toute la complexité de la loi inconnue $P$ est encodée dans $G$.
 
-\section{Contributions de cette Thèse}
-% Traduction de "Contributions of This Thesis"
+Cela fait écho à une idée classique. Un statisticien suppose que les données suivent une famille connue de lois (courbes en cloche, exponentielles, etc.) et estime quelques paramètres pour déterminer laquelle. Un modélisateur génératif fait un pari similaire~: au lieu de supposer que la loi a une certaine forme, nous supposons que la transformation $G$ en a une. Quand $G$ est un réseau de neurones, nous parions que transformer de l'aléa à travers des couches de calculs peut imiter les données.
 
-\subsection{GANs à Queues Lourdes pour la Génération de Valeurs Extrêmes}
-% Traduction de "Heavy-Tailed GANs for Extreme Value Generation"
+La percée de la dernière décennie est que les réseaux de neurones peuvent apprendre $G$ à partir d'exemples, produisant des images indiscernables de photographies, du texte qui se lit comme écrit par un humain. Mais le revers de la médaille~: les réseaux de neurones apprennent $G$ en minimisant une mesure globale d'erreur. Ce processus n'a pas de mécanisme pour préserver des propriétés structurelles spécifiques.
 
-\subsection{Statistiques d'Ordre Génératives par Réseaux de Neurones}
-% Traduction de "Generative Neural Order Statistics"
 
-\subsection{Réglage Fin de Modèles de Diffusion sans Gradient}
-% Traduction de "Gradient-Free Fine-Tuning of Diffusion Models"
+\subsection{Le problème~: quand la structure compte}
+\label{sec:intro-problem-fr}
 
-\section{Organisation du Manuscrit}
-% Traduction de "Organization of the Manuscript"
+Que signifie pour des données synthétiques d'être \emph{fidèles} au phénomène qu'elles imitent~?
 
+Considérons une banque générant de faux scénarios de crise pour tester ses investissements. Les scénarios générés semblent réalistes en moyenne, mais les pires pertes surviennent isolément~: quand les actions s'effondrent, les obligations restent calmes. Les données synthétiques capturent chaque variable séparément mais manquent la façon dont elles évoluent ensemble. Dans une vraie crise, les pertes sont corrélées. Ou considérons la génération de classements synthétiques~: le troisième meilleur élément obtient parfois un score supérieur au premier. Le classement est brouillé~; la simulation est inutile.
+
+Ces échecs reflètent un décalage entre ce que les modèles génératifs optimisent et ce que les applications requièrent. Les modèles standards récompensent l'obtention de la forme globale correcte mais ne fournissent aucune garantie sur des propriétés structurelles spécifiques.
+
+
+\subsection{Cette thèse~: méthodes génératives guidées par la théorie}
+\label{sec:intro-thesis-fr}
+
+Ce manuscrit part de problèmes réels où la structure compte. Nous identifions la propriété clé qui doit être préservée (effondrements conjoints, classements, préférences), la formulons comme un objet mathématique, et analysons dans quelle mesure les réseaux de neurones peuvent l'approximer. C'est la méthodologie centrale~: du problème appliqué, à l'abstraction mathématique, à l'analyse théorique.
+
+Nous étudions trois régimes structurels~: la dépendance de queue, les statistiques d'ordre et l'inclinaison par récompense. Pour chacun, nous concevons des méthodes génératives qui respectent \emph{prouvablement} la structure, fournissant des garanties sur la précision d'approximation.
+
+
+\section{Trois régimes structurels}
+\label{sec:intro-regimes-fr}
+
+Nous décrivons maintenant les trois régimes structurels abordés dans cette thèse. Pour chaque régime, nous présentons le problème réel qui motive notre travail et le formalisons mathématiquement.
+
+\subsection{Valeurs extrêmes et dépendance de queue}
+\label{sec:intro-evt-fr}
+
+\paragraph{Le problème~: quand les extrêmes gouvernent tout.}
+Dans de nombreux domaines, les événements extrêmes dominent les résultats malgré leur rareté. En gestion de portefeuille, une poignée de grandes pertes peut effacer des années de gains réguliers~: la distribution des rendements est à queue lourde, et le risque est concentré dans les extrêmes \parencite{cont2001}. La Value-at-Risk, les tests de stress et les exigences réglementaires en capital reposent tous sur la probabilité de pertes rares mais catastrophiques. La crise financière de 2008 a démontré que les modèles calibrés sur des conditions normales échouent lorsque des extrêmes surviennent \parencite{mcneil2015}.
+
+En assurance, les événements extrêmes sont le cœur de métier. Les réassureurs doivent tarifer le risque de catastrophes simultanées~: un ouragan frappant la Floride pendant qu'un tremblement de terre frappe la Californie. C'est l'occurrence conjointe de tels événements, et non leurs probabilités individuelles, qui détermine les exigences de solvabilité. En science du climat, les extrêmes composés (vagues de chaleur et sécheresses simultanées, événements d'inondation séquentiels) posent les plus grands risques aux écosystèmes et aux infrastructures \parencite{zscheischler2018,bevacqua2021}. Les modèles climatiques doivent capturer non seulement la fréquence des extrêmes individuels, mais leur tendance à se regrouper dans l'espace et le temps.
+
+Le fil conducteur est la \emph{dépendance de queue}~: la tendance des extrêmes à survenir ensemble. Deux variables aléatoires peuvent avoir une corrélation nulle dans des conditions normales tout en exhibant une forte dépendance de queue~: quand l'une prend une valeur extrême, l'autre a tendance à en faire autant (voir la Figure~\ref{fig:tail-dependence-fr}). Pour un gestionnaire de portefeuille, cela signifie que la diversification échoue précisément quand elle est le plus nécessaire. Pour un assureur, cela signifie des sinistres corrélés. Pour le risque climatique, cela signifie des catastrophes composées.
+
+\paragraph{Deux défis distincts.}
+Générer des données de valeurs extrêmes réalistes pose deux défis fondamentalement différents.
+
+Le premier est la \emph{lourdeur marginale des queues}. Une distribution est à queue lourde quand les valeurs extrêmes sont bien plus probables que ce que les modèles à queue légère prédiraient. La Figure~\ref{fig:heavy-tails-fr} compare trois distributions~: la gaussienne absolue $|X|$, l'exponentielle (toutes deux à queue légère) et la Pareto (à queue lourde). Près de zéro, elles se ressemblent, mais leurs queues se comportent très différemment. Le Tableau~\ref{tab:tail-probs-fr} montre la probabilité de dépasser différents seuils. À $t=8$, la gaussienne attribue une probabilité de $10^{-15}$, l'exponentielle $10^{-4}$, mais la Pareto donne encore $3{,}7\%$. Les phénomènes à queue lourde produisent des événements extrêmes que les modèles à queue légère considèrent comme virtuellement impossibles.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/intro/heavy_tails.pdf}
+\caption[Distributions à queue légère vs à queue lourde]{Distributions à queue légère vs à queue lourde. Gauche~: comparaison des densités pour $|$Gaussienne$|$, exponentielle et Pareto. Droite~: probabilité de queue $\P(X > t)$ en échelle logarithmique. Les queues gaussienne et exponentielle décroissent rapidement~; la queue de Pareto décroît comme une loi de puissance, restant substantielle même pour de grandes valeurs de $t$.}
+\label{fig:heavy-tails-fr}
+\end{figure}
+
+\begin{table}[ht]
+\centering
+\caption[Comparaison des probabilités de queue]{Probabilité de dépasser le seuil $t$ pour $|$Gaussienne$|$ ($\sigma=1$), exponentielle ($\lambda=1$) et Pareto ($\alpha=1{,}5$).}
+\label{tab:tail-probs-fr}
+\begin{tabular}{rcccc}
+\toprule
+$t$ & $|$Gaussienne$|$ & Exponentielle & Pareto \\
+\midrule
+3  & $2{,}7 \times 10^{-3}$ & $5{,}0 \times 10^{-2}$ & $1{,}3 \times 10^{-1}$ \\
+5  & $5{,}7 \times 10^{-7}$ & $6{,}7 \times 10^{-3}$ & $6{,}8 \times 10^{-2}$ \\
+8  & $1{,}3 \times 10^{-15}$ & $3{,}4 \times 10^{-4}$ & $3{,}7 \times 10^{-2}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Le second défi est la \emph{dépendance extrémale}~: quand plusieurs variables sont impliquées, leur comportement conjoint dans les queues peut être entièrement différent de leur dépendance dans des conditions normales. La Figure~\ref{fig:tail-dependence-fr} illustre ceci~: deux échantillons avec des distributions marginales identiques se comportent très différemment dans les queues selon que les extrêmes surviennent ensemble ou indépendamment.
+
+Comme nous le verrons dans la Section~\ref{sec:intro-sota-evt-fr}, les modèles génératifs standards échouent sur ces deux aspects.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/intro/tail_dependence.pdf}
+\caption[Dépendance de queue avec marges de Pareto]{Dépendance de queue illustrée avec des marges de Pareto ($\alpha = 1{,}5$). Gauche~: marges indépendantes~; les valeurs extrêmes de $X_1$ et $X_2$ surviennent indépendamment, donc la région de queue supérieure (boîte rouge) est clairsemée. Droite~: copule de Gumbel ($\theta = 2{,}5$) avec dépendance de queue supérieure~; quand $X_1$ est extrême, $X_2$ tend à être extrême également, créant un regroupement dans le coin supérieur droit. Les deux échantillons ont des distributions marginales identiques, mais se comportent très différemment dans les queues.}
+\label{fig:tail-dependence-fr}
+\end{figure}
+
+\paragraph{Formulation mathématique~: la fonction de dépendance de queue stable.}
+En statistique classique, la \emph{corrélation} mesure comment deux variables évoluent ensemble en moyenne. La corrélation résume la dépendance sur l'ensemble de la distribution mais ne caractérise pas complètement le comportement des queues. Deux variables peuvent avoir une corrélation nulle tout en s'effondrant ensemble dans une crise~; inversement, des variables avec la même corrélation peuvent exhiber des structures de dépendance de queue très différentes.
+
+La \emph{fonction de dépendance de queue stable} (stdf, de l'anglais \emph{stable tail dependence function}) joue pour les extrêmes le rôle que la corrélation joue pour le corps de la distribution. Tout comme la corrélation capture le co-mouvement moyen, la stdf capture le co-mouvement extrême~: quand une variable prend une très grande valeur, quelle est la probabilité que l'autre soit grande également~? Pour un vecteur aléatoire $\mathbf{X} = (X_1, \ldots, X_d)$, la stdf $\ell$ est définie par
+\begin{equation}
+    \ell(\mathbf{x}) = \lim_{t \to \infty} t \, \P\left( \bigcup_{j=1}^d \{X_j > t x_j\} \right).
+    \label{eq:stdf-def-fr}
+\end{equation}
+Cette limite capture la probabilité asymptotique des dépassements conjoints lorsque l'on s'enfonce dans la queue. La stdf caractérise complètement la dépendance extrémale~: deux distributions avec la même stdf exhibent un comportement identique dans les extrêmes, indépendamment de leur comportement dans le corps de la distribution. Connaître la stdf est essentiel pour comprendre la diversification quand elle compte le plus~: pendant les événements extrêmes.
+
+
+\subsection{Statistiques d'ordre et contraintes de classement}
+\label{sec:intro-order-fr}
+
+\paragraph{Le problème~: quand le classement définit les données.}
+De nombreux phénomènes sont définis par leur structure de rang. Dans les enchères, ce qui compte est la distribution de l'offre la plus élevée, ou l'écart entre les deux offres les plus élevées. En sport, nous nous intéressons à la performance du joueur le mieux classé, pas à la moyenne. En statistique des valeurs extrêmes, les $k$ plus grandes observations sont utilisées pour estimer le comportement des queues. Dans chaque cas, l'ordonnancement n'est pas accessoire~: c'est la structure définissante des données.
+
+Considérons l'investissement à impact, où les actifs sont classés par scores environnementaux, sociaux ou de gouvernance (ESG) \parencite{lo2021}. Un gestionnaire de fonds testant rétrospectivement une stratégie ESG doit simuler les rendements du meilleur actif classé, du deuxième meilleur, et ainsi de suite. Ce sont des \emph{statistiques d'ordre induites}~: les rendements $\Theta_{[1:N]}, \ldots, \Theta_{[N:N]}$ associés aux actifs classés par leurs scores ESG $X_{1:N} \leq \cdots \leq X_{N:N}$. Les données synthétiques doivent préserver à la fois la distribution marginale à chaque rang et la dépendance conjointe entre les rangs.
+
+\paragraph{Formulation mathématique~: statistiques d'ordre et leur densité conjointe.}
+Étant donné un échantillon $X_1, \ldots, X_n$ d'une distribution continue $F$ de densité $f$, les \emph{statistiques d'ordre} sont les valeurs triées $X_{1:n} \leq X_{2:n} \leq \cdots \leq X_{n:n}$. Leur densité conjointe est
+\begin{equation}
+    f_{1:n, \ldots, n:n}(x_1, \ldots, x_n) = n! \prod_{i=1}^n f(x_i) \cdot \mathbf{1}\{x_1 \leq \cdots \leq x_n\}.
+    \label{eq:os-joint-density-fr}
+\end{equation}
+Le facteur $n!$ compte le nombre d'arrangements, et l'indicatrice $\mathbf{1}\{\cdot\}$ impose la contrainte d'ordonnancement. Les représentations classiques, telles que celles de Sukhatme et Schucany, décomposent les statistiques d'ordre en blocs élémentaires tractables qui ont permis la simulation exacte depuis des décennies. Comme nous le verrons dans la Section~\ref{sec:intro-contrib-genos-fr}, ces représentations fournissent également les fondements pour l'approximation par réseaux de neurones avec des bornes de complexité démontrables.
+
+
+\subsection{Distributions inclinées par récompense et ajustement fin de modèles}
+\label{sec:intro-tilt-fr}
+
+\paragraph{Le problème~: aligner les modèles génératifs avec les préférences humaines.}
+Un modèle génératif pré-entraîné produit des échantillons d'une distribution apprise à partir des données d'entraînement. Mais pour de nombreuses applications, nous voulons des échantillons qui ne sont pas simplement typiques, mais \emph{bons} selon un certain critère~: des images esthétiquement plaisantes, du texte utile et inoffensif, des molécules qui se lient à une protéine cible. C'est le \emph{problème d'alignement}~: ajuster un modèle génératif pour favoriser les sorties de haute qualité tout en maintenant la diversité et la cohérence.
+
+Considérons un modèle de diffusion texte-vers-image entraîné sur des images collectées sur le web. Le modèle génère des images réalistes, mais beaucoup sont mal composées, contiennent des artefacts ou représentent du contenu indésirable. Nous avons accès à un modèle de récompense (entraîné sur les préférences humaines) qui note les images selon leur qualité esthétique et leur sûreté. L'objectif est d'affiner le modèle de diffusion pour qu'il génère préférentiellement des images à haute récompense, sans s'effondrer vers un mode unique ni oublier comment générer du contenu diversifié.
+
+\paragraph{Formulation mathématique~: inclinaison exponentielle.}
+La formulation mathématique naturelle est l'\emph{inclinaison exponentielle}. Étant donné une distribution de base $p_0$ (le modèle pré-entraîné) et une fonction de récompense $r: \mathcal{X} \to \R$, la cible est la \emph{distribution inclinée}
+\begin{equation}
+    p(x) \propto p_0(x) \exp(\lambda \, r(x)),
+    \label{eq:tilted-dist-fr}
+\end{equation}
+où $\lambda > 0$ contrôle l'intensité de l'inclinaison. Cette distribution est l'unique solution du problème de maximisation de récompense régularisé par KL~:
+\[
+    p = \arg\max_q \left\{ \E_q[r(x)] - \frac{1}{\lambda} \mathrm{KL}(q \| p_0) \right\}.
+\]
+La distribution inclinée équilibre la maximisation de la récompense contre le fait de rester proche du modèle pré-entraîné, avec $\lambda$ contrôlant le compromis. Un grand $\lambda$ favorise la haute récompense~; un petit $\lambda$ reste proche de $p_0$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/intro/reward_tilting.pdf}
+\caption[Inclinaison par récompense d'une distribution gaussienne]{L'inclinaison par récompense déplace la distribution vers les régions à haute récompense. Avec $p_0 = \mathcal{N}(2, 1)$, récompense linéaire $r(x) = x$, et intensité d'inclinaison $\lambda = 1{,}5$, la distribution inclinée $p(x) \propto p_0(x) \exp(\lambda r(x))$ est $\mathcal{N}(3{,}5, 1)$~: la moyenne se décale de $\lambda\sigma^2 = 1{,}5$ vers la haute récompense, tandis que la variance reste inchangée.}
+\label{fig:reward-tilting-fr}
+\end{figure}
+
+
+\section{Contexte de la modélisation générative}
+\label{sec:intro-background-fr}
+
+La Section~\ref{sec:intro-context-fr} a introduit l'objectif d'apprendre à partir des données tout en respectant la structure. La Section~\ref{sec:intro-regimes-fr} a présenté trois régimes où la structure compte~: la dépendance de queue, les statistiques d'ordre et l'inclinaison par récompense. Pour relever ces défis, nous nous tournons vers la modélisation générative~: la tâche de produire des données synthétiques qui suivent la même loi que les observations. Cette section fournit le contexte technique sur les modèles génératifs et la théorie d'approximation par réseaux de neurones nécessaire pour comprendre les contributions de cette thèse.
+
+\subsection{Le problème de la modélisation générative}
+\label{sec:intro-genmod-problem-fr}
+
+Le problème fondamental de la modélisation générative peut être énoncé comme suit~: étant donné des échantillons $X_1, \ldots, X_n$ tirés indépendamment d'une distribution inconnue $P$ sur $\R^d$, construire une procédure pour générer de nouveaux échantillons qui sont distribués selon $P$, ou une approximation proche de celle-ci.
+
+Ce problème a une longue histoire en statistique et probabilités. Les approches classiques incluent l'\emph{estimation de densité} \parencite{silverman1986,scott2015}, où l'on estime la densité $p = dP/d\lambda$ puis on échantillonne à partir de la densité estimée, et les \emph{chaînes de Markov Monte Carlo} (MCMC) \parencite{metropolis1953,hastings1970,robert2004}, où l'on construit une chaîne de Markov ayant $P$ comme distribution stationnaire et on échantillonne en faisant tourner la chaîne jusqu'à l'équilibre. Les deux approches font face à la malédiction de la dimension \parencite{bellman1961}~: l'estimation de densité devient statistiquement intractable en haute dimension, tandis que les temps de mélange MCMC peuvent croître exponentiellement avec la dimension.
+
+L'approche moderne de la modélisation générative, rendue possible par l'apprentissage profond, emprunte une voie différente. Plutôt qu'estimer explicitement la densité, nous apprenons une \emph{application de transport} $G$ qui transforme des échantillons d'une distribution de référence simple (typiquement gaussienne standard) en échantillons de la distribution cible. Si $Z$ est un bruit gaussien, alors $G(Z)$ devrait être distribué approximativement comme $P$. L'application $G$ est paramétrée par un réseau de neurones, et les paramètres sont appris à partir des données.
+
+Cette vision basée sur le transport unifie plusieurs paradigmes génératifs modernes. Dans les \emph{flots normalisants} \parencite{rezende2015,dinh2017}, l'application $G$ est contrainte à être inversible avec un jacobien tractable. Dans les \emph{autoencodeurs variationnels} (VAE) \parencite{kingma2014}, l'application est apprise conjointement avec une inverse approximative. Dans les \emph{réseaux antagonistes génératifs} (GAN) \parencite{goodfellow2014}, l'application est apprise via un objectif adversarial. Dans les \emph{modèles de diffusion} \parencite{ho2020,song2021}, l'application est implicitement définie par l'inverse d'un processus de bruitage. Nous décrivons les GAN et les modèles de diffusion en détail ci-dessous, car ils sont les fondements de nos contributions.
+
+
+\subsection{Réseaux de neurones}
+\label{sec:intro-nn-fr}
+
+Un \emph{réseau de neurones feedforward} à $L$ couches cachées transforme une entrée $x$ à travers des couches successives (Figure~\ref{fig:neural-network-fr}). En notant $h_0 = x$, les représentations cachées sont
+\begin{equation}
+    h_\ell = \sigma(W_\ell h_{\ell-1} + b_\ell) \quad \text{pour } \ell = 1, 2, \ldots, L,
+    \label{eq:nn-layer-fr}
+\end{equation}
+où $W_\ell$ est une matrice de poids, $b_\ell$ un vecteur de biais, et $\sigma$ une fonction d'activation non linéaire appliquée coordonnée par coordonnée. La sortie est $g(x) = W_{L+1} h_L + b_{L+1}$. Les activations courantes incluent la sigmoïde, la tangente hyperbolique et la ReLU $\sigma(t) = \max(0, t)$, qui domine la pratique moderne.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/intro/neural_network.pdf}
+\caption[Architecture d'un réseau de neurones feedforward]{Un réseau de neurones feedforward. L'entrée $h_0 = x$ passe à travers $L$ couches cachées, chacune appliquant une transformation affine suivie de l'activation $\sigma$. La sortie $g(x)$ est une fonction linéaire de $h_L$.}
+\label{fig:neural-network-fr}
+\end{figure}
+
+
+\subsection{Théorie d'approximation des réseaux de neurones}
+\label{sec:intro-uat-fr}
+
+Le \emph{théorème d'approximation universelle} \parencite{cybenko1989,hornik1989} établit que les réseaux de neurones à une seule couche cachée peuvent approximer toute fonction continue sur un domaine compact avec une précision arbitraire, étant donnée une largeur suffisante. Cela s'étend aux réseaux ReLU \parencite{leshno1993}.
+
+\paragraph{Bornes quantitatives.}
+Les bornes quantitatives relient l'erreur d'approximation à la taille du réseau \parencite{barron1993,yarotsky2017}. Pour les fonctions lipschitziennes sur $[0,1]^d$, atteindre une erreur $\varepsilon$ nécessite $O(\varepsilon^{-d})$ paramètres, exhibant la malédiction de la dimension. Pour des fonctions plus régulières (classe de H\"older avec régularité $s$), des réseaux avec $O(\varepsilon^{-d/s})$ paramètres suffisent \parencite{yarotsky2017}.
+
+\paragraph{Limitations.}
+Ces théorèmes concernent l'approximation ponctuelle de fonctions, pas la préservation de structure distributionnelle. Un réseau approximant une application de transport $G$ uniformément peut néanmoins échouer à préserver le comportement des queues, les contraintes d'ordonnancement ou la structure de dépendance. De plus, les théorèmes supposent que les paramètres optimaux sont connus~; en pratique, la descente de gradient peut ne pas les trouver. Ces limitations motivent la théorie spécifique à la structure développée dans cette thèse.
+
+
+\subsection{Réseaux antagonistes génératifs}
+\label{sec:intro-gan-fr}
+
+Les réseaux antagonistes génératifs \parencite{goodfellow2014} formulent la modélisation générative comme un jeu à deux joueurs. L'intuition se comprend mieux à travers une analogie~: imaginez un faussaire essayant de produire de faux billets de banque, et un détective essayant de les détecter. Le faussaire s'améliore en étudiant quels faux sont détectés~; le détective s'améliore en étudiant les dernières techniques du faussaire. Au fil du temps, les deux deviennent plus sophistiqués, jusqu'à ce que finalement le faussaire produise des billets si convaincants que même le détective expert ne peut les distinguer de la vraie monnaie.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/intro/gan_framework.pdf}
+\caption[Le cadre GAN comme jeu adversarial]{Le cadre GAN comme jeu adversarial. Le générateur (faussaire) transforme du bruit en faux échantillons~; le discriminateur (détective) tente de distinguer les faux des vraies données. Les deux réseaux s'améliorent par compétition jusqu'à l'équilibre, quand les échantillons générés sont indiscernables des vraies données.}
+\label{fig:gan-analogy-fr}
+\end{figure}
+
+En termes mathématiques, un \emph{générateur} $G_\theta: \mathcal{Z} \to \mathcal{X}$ transforme un bruit latent $Z \sim p_Z$ en échantillons synthétiques (la production du faussaire). Un \emph{discriminateur} $D_\phi: \mathcal{X} \to [0,1]$ tente de distinguer les échantillons réels des générés (le verdict du détective). Les réseaux sont entraînés en résolvant un problème minimax~:
+\[
+    \min_\theta \max_\phi \; \E_{X \sim p_{\mathrm{data}}}[\log D_\phi(X)] + \E_{Z \sim p_Z}[\log(1 - D_\phi(G_\theta(Z)))].
+\]
+Le générateur minimise cet objectif (essayant de tromper le discriminateur), tandis que le discriminateur le maximise (essayant de classifier correctement réel vs.\ faux). À l'équilibre, le générateur produit des échantillons de la distribution des données, et le discriminateur sort $1/2$ pour toutes les entrées, incapable de distinguer le réel du faux.
+
+Le GAN de Wasserstein (WGAN) \parencite{arjovsky2017} remplace la divergence de Jensen-Shannon par la distance de Wasserstein-1~:
+\[
+    W_1(p_{\mathrm{data}}, p_\theta) = \sup_{\|f\|_L \leq 1} \E_{X \sim p_{\mathrm{data}}}[f(X)] - \E_{Z \sim p_Z}[f(G_\theta(Z))],
+\]
+où le supremum est pris sur les fonctions 1-lipschitziennes. Le WGAN avec pénalité de gradient (WGAN-GP) \parencite{gulrajani2017} impose la contrainte de Lipschitz via un terme de pénalité, améliorant la stabilité de l'entraînement.
+
+
+\subsection{Modèles de diffusion et basés sur le score}
+\label{sec:intro-diffusion-fr}
+
+Les modèles de diffusion \parencite{ho2020,song2021} définissent un processus génératif en construisant un chemin continu $(p_t)_{t \in [0,1]}$ entre la distribution des données $p_0$ et une référence tractable $p_1 = \mathrm{N}(0, \mathrm{I}_d)$. Le chemin est défini via l'\emph{interpolation directe}
+\begin{equation}
+    X_t = \alpha_t X_0 + \sigma_t X_1, \quad X_0 \sim p_0, \quad X_1 \sim \mathrm{N}(0, \mathrm{I}_d),
+    \label{eq:diffusion-forward-fr}
+\end{equation}
+où $(\alpha_t, \sigma_t)$ sont des programmes déterministes avec $(\alpha_0, \sigma_0) = (1, 0)$ et $(\alpha_1, \sigma_1) = (0, 1)$. À $t = 0$, nous avons des données propres~; à $t = 1$, du pur bruit. Les choix standards incluent le programme préservant la variance ($\alpha_t^2 + \sigma_t^2 = 1$) et le programme linéaire ($\alpha_t = 1 - t$, $\sigma_t = t$).
+
+Pour générer des échantillons, nous inversons ce processus. La quantité clé est la \emph{fonction de score} $\nabla_x \log p_t$, qui pointe vers les régions de haute densité à chaque niveau de bruit. Pour le noyau direct gaussien, le score satisfait $\nabla_x \log p_t(x_t) = -\hat{x}_1(x_t, t)/\sigma_t$, où $\hat{x}_1(x_t, t) = \mathbb{E}[X_1 \mid X_t = x_t]$ est l'espérance conditionnelle du bruit sachant l'échantillon bruité.
+
+Le score est appris via l'\emph{appariement de score par débruitage} \parencite{hyvarinen2005,vincent2011}~: un réseau $s_\theta(x, t)$ est entraîné à prédire le bruit $X_1$ à partir de l'échantillon bruité $X_t$, ce qui équivaut à apprendre $\nabla_x \log p_t$. En partant de $X_1 \sim \mathrm{N}(0, \mathrm{I}_d)$ et en débruitant itérativement en utilisant le score appris, on obtient des échantillons de $p_0$.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\textwidth]{figures/intro/diffusion_process.pdf}
+\caption[Cadre des modèles de diffusion sur un mélange de gaussiennes]{Le cadre des modèles de diffusion sur un mélange de gaussiennes 2D. Processus direct (ligne du haut)~: les données de $p_0$ sont progressivement corrompues par ajout de bruit jusqu'à devenir indiscernables de la référence gaussienne $p_1$ à $t=1$. Processus inverse (ligne du bas)~: partant du bruit pur, un réseau de score appris $s_\theta$ guide le débruitage, récupérant graduellement la structure bimodale de $p_0$ à $t=0$.}
+\label{fig:diffusion-process-fr}
+\end{figure}
+
+
+\section{État de l'art et problèmes ouverts}
+\label{sec:intro-sota-fr}
+
+Nous passons maintenant en revue l'état de l'art pour chaque régime structurel, identifions les lacunes dans la littérature existante et formulons les objectifs de cette thèse.
+
+\subsection{Génération de valeurs extrêmes}
+\label{sec:intro-sota-evt-fr}
+
+\paragraph{Théorie classique des valeurs extrêmes.}
+La théorie statistique des extrêmes multivariés est bien développée \parencite{embrechts1997,haan2006,resnick1987}. Pour les extrêmes univariés, le théorème de Fisher-Tippett-Gnedenko établit que les maxima correctement normalisés convergent vers l'une des trois distributions~: Gumbel, Fréchet ou Weibull, unifiées par la distribution des valeurs extrêmes généralisée (GEV). Dans le cadre multivarié, la fonction de dépendance de queue stable (stdf) fournit une caractérisation complète de la dépendance extrémale, décrivant comment la probabilité de dépassements conjoints évolue lorsque l'on s'enfonce dans la queue. De nombreux modèles paramétriques ont été proposés~: la copule de Gumbel (logistique) \parencite{gumbel1960}, le modèle de Hüsler-Reiss provenant des processus gaussiens \parencite{husler1989}, et le modèle extrémal-$t$ généralisant Hüsler-Reiss aux marges de Student \parencite{nikoloulopoulos2009}. Les méthodes d'estimation incluent la vraisemblance empirique \parencite{einmahl2012}, la M-estimation basée sur les rangs \parencite{einmahl2016} et les approches bayésiennes \parencite{sabourin2013}.
+
+\paragraph{Pourquoi les GAN standards échouent.}
+Les modèles génératifs standards sont fondamentalement incompatibles avec les données à queue lourde. La raison est mathématique~: \parencite{wiese2019} ont prouvé que si la distribution latente a des queues légères (par exemple gaussienne) et que le générateur $G$ est lipschitzien continu, alors la distribution générée $G(Z)$ a nécessairement des queues légères. Spécifiquement, si $Z$ est sous-gaussien, alors $G(Z)$ est sous-gaussien pour tout $G$ lipschitzien. Puisque les GAN modernes imposent des contraintes de Lipschitz pour la stabilité de l'entraînement (normalisation spectrale, pénalités de gradient), ils ne \emph{peuvent prouvablement pas} générer des sorties à queue lourde à partir de bruit gaussien. Ce n'est pas un échec de l'optimisation ou de l'architecture~; c'est une impossibilité fondamentale.
+
+\paragraph{Modèles génératifs à queue lourde.}
+Des travaux récents ont abordé cette limitation à travers plusieurs approches \parencite{allouche_chapterextreme}. Pour les GAN~: les \emph{méthodes de prétraitement} comme Quant-GAN \parencite{wiese2019} et evtGAN \parencite{boulaguiem2022} transforment les données pour supprimer la lourdeur des queues avant l'entraînement~; les méthodes à \emph{latent à queue lourde} \parencite{huster2021pareto} remplacent le bruit gaussien par des distributions de Pareto~; les approches \emph{paramétrées par EVT} comme EV-GAN \parencite{allouche2022} conçoivent des générateurs qui encodent explicitement la structure des valeurs extrêmes. Pour les modèles de diffusion, les extensions à queue lourde remplacent le processus de bruit gaussien par des processus de Lévy $\alpha$-stables \parencite{yoon2023}, permettant la génération directe d'échantillons à queue lourde. Cependant, toutes ces approches se concentrent sur le comportement \emph{marginal} des queues. Aucune n'aborde la \emph{structure de dépendance} dans les queues, caractérisée par la stdf.
+
+\paragraph{Lacune 1.} À notre connaissance, aucun modèle génératif existant ne fournit de garanties prouvables sur l'approximation de la dépendance de queue. Les méthodes existantes traitent le comportement marginal des queues mais ignorent la structure conjointe. Nous comblons cette lacune dans le Chapitre~\ref{chap:htgan}, en développant une architecture GAN qui approxime prouvablement toute stdf.
+
+\subsection{Génération de statistiques d'ordre}
+\label{sec:intro-sota-order-fr}
+
+La formulation mathématique des statistiques d'ordre a été donnée dans la Section~\ref{sec:intro-order-fr}. Les représentations classiques (Sukhatme, Schucany) ont permis la simulation exacte depuis des décennies \parencite{david2003,arnold2008}. Nous passons maintenant en revue l'état de l'art.
+
+\paragraph{Approches d'apprentissage automatique.}
+La littérature en apprentissage automatique a abordé le tri du point de vue de l'apprentissage à classer \parencite{liu2009}, où l'objectif est de prédire des ordres plutôt que de les générer. Des opérateurs de tri différentiables ont été développés pour permettre l'apprentissage par gradient~: \parencite{grover2019b} ont proposé NeuralSort, une relaxation continue de l'opérateur argsort basée sur l'algorithme de Sinkhorn~; \parencite{cuturi2019} ont développé le tri différentiable basé sur le transport optimal~; \parencite{blondel2020} ont introduit le tri différentiable rapide avec une complexité $O(n \log n)$. Ces méthodes permettent le tri dans les pipelines de réseaux de neurones mais sont conçues pour les tâches de classement, pas pour l'appariement de distributions.
+
+\paragraph{Modèles génératifs et ordonnancement.}
+Les modèles génératifs standards (GAN, VAE, diffusion) produisent des échantillons non ordonnés. Appliqués à des données classées, ils font face à deux problèmes. Premièrement, les échantillons générés ne sont pas triés~: un GAN entraîné sur des statistiques d'ordre produira des vecteurs dont les coordonnées ne sont pas monotonement ordonnées. Le tri a posteriori peut restaurer l'ordre mais introduit un biais dans la distribution. Deuxièmement, le prétraitement standard détruit la structure d'ordonnancement~: la normalisation par coordonnée vers $[0,1]$, courante dans l'entraînement des GAN, normalise chaque coordonnée indépendamment selon son étendue marginale, détruisant l'ordonnancement relatif. Si la $k$-ième statistique d'ordre est normalisée par sa propre moyenne et variance, et la $(k+1)$-ième par des valeurs différentes, il n'y a aucune garantie que les valeurs normalisées restent triées.
+
+\paragraph{Lacune 2.} À notre connaissance, aucun modèle génératif existant ne produit des statistiques d'ordre avec à la fois les distributions marginales/conjointes correctes et des contraintes d'ordonnancement garanties. Les méthodes de tri différentiable existantes traitent la prédiction de classement, pas la modélisation générative. Nous comblons cette lacune dans le Chapitre~\ref{chap:genos}, en développant une architecture qui exploite les représentations classiques pour garantir l'ordonnancement tout en appariant les distributions cibles.
+
+\subsection{Génération inclinée par récompense}
+\label{sec:intro-sota-tilt-fr}
+
+Le problème d'alignement (Section~\ref{sec:intro-tilt-fr}) requiert d'échantillonner à partir de la distribution inclinée~\eqref{eq:tilted-dist-fr}. Nous passons en revue les approches existantes.
+
+\paragraph{Apprentissage par renforcement à partir de feedback humain.}
+Le paradigme dominant pour l'alignement est l'apprentissage par renforcement à partir de feedback humain (RLHF) \parencite{christiano2017,bai2022,ouyang2022}. Un modèle de récompense est entraîné sur des données de préférence humaine (comparaisons par paires de sorties), puis le modèle génératif est affiné pour maximiser la récompense espérée en utilisant des méthodes de gradient de politique (PPO, REINFORCE). Le RLHF a été transformateur pour les grands modèles de langage, permettant ChatGPT, Claude et d'autres agents conversationnels. Cependant, le RLHF est notoirement instable~: le piratage de récompense, l'effondrement de mode et l'oubli catastrophique sont des modes d'échec courants \parencite{casper2023}.
+
+\paragraph{Ajustement fin des modèles de diffusion.}
+Pour les modèles de diffusion, plusieurs approches d'ajustement fin ont émergé. DRaFT \parencite{clark2024} rétropropage à travers toute la chaîne de débruitage pour maximiser la récompense, mais cela nécessite de stocker les activations à travers tous les pas de temps, avec une mémoire croissant linéairement avec la longueur de la chaîne. DPOK \parencite{fan2023} combine les gradients de politique avec la régularisation KL. ReFL \parencite{xu2024} utilise l'apprentissage par feedback de récompense pour affiner les modèles de diffusion texte-vers-image. L'appariement adjoint \parencite{domingo-enrich2025} fournit une approche théoriquement fondée basée sur les EDS adjointes, atteignant des résultats état de l'art mais nécessitant toujours les gradients de récompense.
+
+\paragraph{Le goulot d'étranglement du gradient.}
+Les méthodes d'ajustement fin basées sur le gradient (DRaFT, appariement adjoint) nécessitent de rétropropager à travers la fonction de récompense, ce qui crée des limitations pratiques~: stocker les activations pour les grands modèles de récompense mène à des coûts mémoire prohibitifs, et les récompenses non différentiables (feedback humain, évaluations discrètes, métriques basées sur simulateur) ne peuvent pas être traitées. Les approches basées sur l'apprentissage par renforcement (RLHF, DPOK) évitent cela en utilisant uniquement les valeurs de récompense, pas les gradients, mais introduisent d'autres défis~: les estimateurs de gradient de politique ont une haute variance, et un réglage fin des hyperparamètres est nécessaire pour équilibrer la maximisation de récompense contre l'effondrement de mode. Aucune approche ne fournit de garanties distributionnelles sur le modèle affiné résultant.
+
+\paragraph{Lacune 3.} À notre connaissance, aucune méthode existante sans gradient n'affine les modèles de diffusion pour échantillonner à partir de distributions inclinées par récompense. Les méthodes existantes nécessitent soit les gradients de récompense, soit utilisent l'apprentissage par renforcement avec des estimateurs à haute variance. Nous comblons cette lacune dans le Chapitre~\ref{chap:ftdiffusion}, en développant une méthode basée sur l'identité de Fisher qui ne requiert que des évaluations directes de la fonction de récompense.
+
+\subsection{Objectifs de cette thèse}
+\label{sec:intro-objectives-fr}
+
+Sur la base des lacunes identifiées, nous formulons trois objectifs~:
+
+\begin{enumerate}
+    \item \textbf{Génération de valeurs extrêmes.} Développer un modèle génératif pour les extrêmes multivariés avec des garanties prouvables sur l'approximation de la stdf. La méthode devrait utiliser un bruit latent à queue lourde et fournir des bornes explicites sur l'erreur d'approximation en termes d'architecture de réseau.
+
+    \item \textbf{Génération de statistiques d'ordre.} Développer un modèle génératif pour les statistiques d'ordre qui garantit l'ordonnancement tout en appariant la distribution cible. La méthode devrait exploiter les représentations classiques et fournir des bornes d'approximation qui évoluent favorablement avec la dimension.
+
+    \item \textbf{Génération inclinée par récompense.} Développer une méthode sans gradient pour affiner les modèles de diffusion vers des distributions inclinées par récompense. La méthode ne devrait requérir que des évaluations directes de la fonction de récompense.
+\end{enumerate}
+
+
+\section{Contributions de cette thèse}
+\label{sec:intro-contributions-fr}
+
+Nous résumons maintenant les contributions principales, organisées selon les trois objectifs.
+
+\subsection{GAN à queue lourde pour la génération de valeurs extrêmes}
+\label{sec:intro-contrib-htgan-fr}
+
+Nous développons les GAN à queue lourde (HTGAN) pour générer des données avec une dépendance de queue correcte.
+
+\paragraph{Contributions théoriques.}
+Nous remplaçons le bruit latent gaussien par un bruit à queue lourde (Pareto ou Fréchet). Comme le générateur est lipschitzien, la propriété de queue lourde se propage à la sortie. Nous prouvons que la stdf de la distribution générée est toujours discrète, un maximum de fonctions linéaires avec un nombre fini d'atomes. Notre théorème d'approximation principal établit que toute stdf peut être approximée dans l'erreur $L^\infty$ $\varepsilon$ en utilisant une dimension latente $N = O(\varepsilon^{-(d-1)})$ et une seule couche cachée avec des activations ReLU. Cela semble être la première garantie d'approximation pour la dépendance de queue dans la littérature de modélisation générative.
+
+\paragraph{Contributions méthodologiques.}
+L'algorithme HTGAN procède en trois étapes~: transformation marginale vers Fréchet unitaire, entraînement GAN avec bruit latent de Pareto, et transformation inverse. Cette séparation des marges et de la dépendance est standard en modélisation par copules.
+
+\paragraph{Contributions expérimentales.}
+Nous évaluons sur des données synthétiques de copule de Gumbel et des rendements du S\&P 500, démontrant que HTGAN capture correctement la dépendance de queue tandis que les GAN standards échouent de plusieurs ordres de grandeur.
+
+
+\subsection{Statistiques d'ordre neurales génératives}
+\label{sec:intro-contrib-genos-fr}
+
+Nous développons les statistiques d'ordre neurales génératives (GENOS) pour générer des données classées avec un ordonnancement garanti.
+
+\paragraph{Contributions théoriques.}
+Nous combinons les représentations statistiques classiques avec la théorie d'approximation des réseaux de neurones \parencite{yarotsky2017} pour dériver des bornes de complexité non asymptotiques. Spécifiquement, nous adaptons deux représentations classiques des statistiques d'ordre et analysons leur complexité d'approximation par réseaux de neurones.
+
+\emph{La représentation de Schucany} \parencite{schucany1972} construit les statistiques d'ordre récursivement~:
+\begin{equation}
+    U_{n-r:n} = U_{n-r+1:n} \cdot U_r^{1/(n-r)}, \quad r = 1, \ldots, n-1.
+    \label{eq:schucany-fr}
+\end{equation}
+Cela nécessite $n$ fonctions de transition différentes. Nous prouvons que l'approximation neurale de ce schéma requiert un nombre de paramètres qui est polynomial de degré $n$ en $\varepsilon^{-1}$.
+
+\emph{La représentation de Sukhatme} \parencite{sukhatme1937} exprime les statistiques d'ordre uniformes via des espacements exponentiels~:
+\begin{equation}
+    U_{k:n} = F\left(\sum_{j=1}^k \frac{E_j}{n-j+1}\right), \quad E_j \stackrel{\text{iid}}{\sim} \mathrm{Exp}(1), \quad F(z) = 1 - e^{-z}.
+    \label{eq:sukhatme-fr}
+\end{equation}
+La somme cumulative a une distribution exponentielle~; appliquer la fonction de répartition exponentielle $F$ donne la $k$-ième statistique d'ordre uniforme $U_{k:n}$. Cela ne requiert d'approximer que deux fonctions universelles ($F$ et $F^{-1}$), indépendamment de $n$. Nous prouvons que l'approche basée sur Sukhatme atteint
+\begin{equation}
+    \E|U_{k:n} - \hat{U}_{k:n}| \leq O(\varepsilon \log n) \quad \text{avec} \quad \mathcal{C}_{\mathrm{Sukhatme}}(\varepsilon) = O(\varepsilon^{-2} \log(1/\varepsilon))
+    \label{eq:sukhatme-complexity-fr}
+\end{equation}
+paramètres. La complexité est quadratique en $\varepsilon^{-1}$, indépendante de $n$, contre polynomiale de degré $n$ pour Schucany. Cela rend l'approche basée sur Sukhatme scalable à de grandes tailles d'échantillon.
+
+\paragraph{Contributions méthodologiques.}
+Nous introduisons la normalisation globale moyenne-échelle, qui préserve l'ordonnancement contrairement à la normalisation par coordonnée. Nous proposons également une pénalité de statistiques d'ordre (OSP) qui pénalise les violations de la contrainte d'ordonnancement~:
+\[
+    \mathcal{L}_{\mathrm{OSP}} = \E_{Z} \left[ \frac{1}{n-1} \sum_{k=1}^{n-1} \left( \max\{G(Z)_k - G(Z)_{k+1}, 0\} \right)^2 \right].
+\]
+
+\paragraph{Contributions expérimentales.}
+Nous évaluons sur des statistiques d'ordre synthétiques avec dimension variable, comparant GAN, WGAN et WGAN avec OSP. L'ajout de la pénalité OSP améliore les métriques d'ordonnancement tout en maintenant des performances compétitives sur la distance de Wasserstein.
+
+
+\subsection{Ajustement fin sans gradient des modèles de diffusion}
+\label{sec:intro-contrib-ftdiff-fr}
+
+Nous développons des méthodes sans gradient pour affiner les modèles de diffusion afin d'échantillonner à partir de distributions inclinées par récompense.
+
+\paragraph{Contributions théoriques.}
+L'identité de Fisher exprime le score de la distribution inclinée comme une covariance~:
+\begin{equation}
+    \nabla_x \log p(x) = \nabla_x \log p_0(x) + \lambda \cdot \mathrm{Cov}_{q_{0|x}}\left[\nabla_{x_0} \log q(x_0 | x), \, r(x_0)\right].
+    \label{eq:fisher-identity-fr}
+\end{equation}
+Cette covariance peut être estimée par Monte Carlo en utilisant uniquement des évaluations directes de $r$, sans rétropropagation à travers le modèle de récompense.
+
+\paragraph{Contributions méthodologiques.}
+Nous proposons un algorithme itératif qui décompose une grande inclinaison en $N$ petites étapes, estimant l'incrément de score à chaque étape via l'identité de Fisher. L'algorithme s'applique même lorsque $r$ est non différentiable ou une boîte noire.
+
+\paragraph{Contributions expérimentales.}
+Sur des mélanges de gaussiennes 2D avec vérité terrain connue, nous validons que la méthode récupère correctement le score incliné et que l'augmentation du nombre d'étapes $N$ améliore la précision.
+
+
+\section{Organisation du manuscrit}
+\label{sec:intro-organization-fr}
+
+Le Chapitre~\ref{chap:htgan} développe la théorie et les algorithmes pour la modélisation générative à queue lourde. Nous présentons le contexte mathématique sur la théorie des valeurs extrêmes multivariées et la stdf, analysons pourquoi les applications lipschitziennes de bruit gaussien ne peuvent pas produire de queues lourdes, caractérisons la stdf discrète induite par les générateurs avec bruit de Pareto, prouvons notre théorème d'approximation principal et présentons des expériences sur des données synthétiques et financières.
+
+Le Chapitre~\ref{chap:genos} développe les modèles génératifs pour les statistiques d'ordre. Nous présentons le contexte sur les statistiques d'ordre et les représentations de Sukhatme et Schucany, prouvons des bornes d'approximation pour les réseaux ReLU, introduisons la normalisation globale moyenne-échelle et l'objectif WGAN-OSP, et présentons des expériences sur des statistiques d'ordre synthétiques.
+
+Le Chapitre~\ref{chap:ftdiffusion} développe l'ajustement fin sans gradient pour les modèles de diffusion. Nous présentons le contexte sur l'inclinaison exponentielle et les méthodes existantes basées sur le gradient, dérivons l'estimateur de score basé sur l'identité de Fisher, analysons l'erreur d'approximation, présentons l'algorithme d'inclinaison itératif et validons sur des expériences contrôlées.
+
+Cette thèse est partiellement basée sur des travaux collaboratifs~: le Chapitre~\ref{chap:htgan} sur les modèles génératifs à queue lourde, le Chapitre~\ref{chap:genos} sur l'approximation neurale des statistiques d'ordre, et le Chapitre~\ref{chap:ftdiffusion} sur l'ajustement fin sans gradient des modèles de diffusion. Les lieux de publication et co-auteurs spécifiques sont indiqués au début de chaque chapitre.

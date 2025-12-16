@@ -1,41 +1,1847 @@
-% Chapter 3: Heavy-Tailed GANs for Extreme Value Generation
-% Based on: HTGAN paper (JMLR submission)
-% Authors: Stéphane Girard, Emmanuel Gobet, Jean Pachebat
-% ----------------------------------------------------------------------
+% Chapter: Heavy-Tailed GANs for Extreme Value Generation
+% Based on: Girard, Gobet, Pachebat - IJCM "HTGAN: Heavy-Tail GAN for Multivariate Dependent Extremes"
+% --------------------------------------------------------------------------------------------
 
-% TODO: Import content from ~/proj/htgan/htgan_latex/
-
-% Placeholder structure based on the paper:
+% Chapter-specific macros (providecommand to avoid conflicts)
+\providecommand{\E}{\mathbb{E}}
+\providecommand{\mathbi}[1]{\textbf{\textit{#1}}}
+\providecommand{\an}{\mathbi{a}_n}
+\providecommand{\bn}{\mathbi{b}_n}
+\providecommand{\at}{\mathbi{a}_t}
+\providecommand{\bt}{\mathbi{b}_t}
+\providecommand{\abf}{\mathbi{a}}
+\providecommand{\bbf}{\mathbi{b}}
+\providecommand{\ebf}{\mathbi{e}}
+\providecommand{\ei}{\mathbi{e}_i}
+\providecommand{\mbf}{\mathbi{m}}
+\providecommand{\Mbf}{\mathbi{M}}
+\providecommand{\Mn}{\mathbi{M}_n}
+\providecommand{\ubf}{\mathbi{u}}
+\providecommand{\xbf}{\mathbi{x}}
+\providecommand{\Zbf}{\mathbi{Z}}
+\providecommand{\Gbf}{{\boldsymbol{\Gamma}}}
+\providecommand{\Ubf}{\mathbi{U}}
+\providecommand{\Xbf}{\mathbi{X}}
+\providecommand{\Ybf}{\mathbi{Y}}
+\providecommand{\Ibf}{\mathbi{I}}
+\providecommand{\ombf}{\boldsymbol{\omega}}
+\providecommand{\gammabf}{\boldsymbol{\gamma}}
+\providecommand{\zeros}{\mathbf{0}}
+\providecommand{\ones}{\mathbf{1}}
+\providecommand{\albf}{\boldsymbol{\alpha}}
+\providecommand{\nubf}{\boldsymbol{\nu}}
+\providecommand{\thetabf}{\boldsymbol{\theta}}
+\providecommand{\Hbb}{\mathbb{H}}
+\providecommand{\Ccal}{\mathcal{C}}
+\providecommand{\Dcal}{\mathcal{D}}
+\providecommand{\Gcal}{\mathcal{G}}
+\providecommand{\Xcal}{\mathcal{X}}
+\providecommand{\Ycal}{\mathcal{Y}}
+\providecommand{\Thbb}{\boldsymbol{\Theta}}
+\providecommand{\alphabb}{\boldsymbol{\alpha}}
+\providecommand{\mda}[1]{\mathrm{Dom}\left(#1\right)}
+\providecommand{\tendsto}[1]{\underset{#1}{\longrightarrow}}
+\providecommand{\ndata}{{n_{\rm data}}}
+\providecommand{\nsample}{{n_{\rm sample}}}
+\providecommand{\pdata}{{p_{\rm data}}}
+\providecommand{\ake}{\textsc{ake}}
+\providecommand{\Prob}[1]{\PP\left(#1\right)}
+\providecommand{\I}[1]{\mathbb{I}\left\{#1\right\}}
+\providecommand{\Esp}[1]{\E\left[#1\right]}
+\providecommand{\sumi}{\sum_{i\in[d]}}
+\providecommand{\stdf}{stdf\;}
+\providecommand{\maxi}{\max_{i\in[d]}}
 
 \section{Introduction}
-% Context: tail dependence in financial risk
-% Gap: standard GANs can't generate heavy-tailed data
-% Contribution: HTGAN with approximation guarantees
 
-\section{Background on Extreme Value Theory}
-% Max-stable distributions
-% Stable tail dependence function (STDF)
-% D-norms
+\paragraph*{Statement of the problem.}
+{Examining extreme events is a critical concern across various fields such as economics, engineering, and life sciences, with wide-ranging applications like actuarial and financial risks \parencite[Chapters X and XIII]{asmu:albr:10}-\parencite[Chapters 1 and 6]{embklumik1997}-\parencite[Chapters 5 and 16, Part III]{embrechts2015quantitative}, 
+communication network reliability \parencite{robe:03}, and aircraft safety \parencite{pran:watk:05}. Extreme events play a crucial role also in the context of 
+climate change \parencite{zscheischler2020typology}, with the occurrence of more and more severe weather events, or in the context of cyber-security \parencite{cremer2022cyber} with the increasing number of cyber-attacks of private companies or public entities. 
+In recent decades, the importance of extreme event analysis has surged in financial risk management, which calls for an ever-increasing number of types of risk (market, credit, operational, reputational, cyber, climate, and so on and so forth) to be encompassed in order to measure their impacts on banking activity and the stability of the financial system.
+In particular, regulators \parencite{eba2014guidelines} are increasingly imposing stress tests to test the resilience of the banking system against different risk categories.
+These stress tests involve numerical simulations of unfavorable yet plausible extreme scenarios, serving as a primary means to evaluate the potential impact on risks (see \parencite{ebcBS2023stresstest} for the 2023 exercises in Europe).
+Often, extreme events are described as tail events of multivariate relevant random variables.\\
+The challenge arises in efficiently obtaining relevant samples for assessing these tail risks.
+Informally, it writes as finding a generator $G$ and a latent distribution $\mu_Z$ which one can easily sample from, such that: 
+\begin{equation}
+Z\sim \mu_Z,\qquad G(Z) \overset{d}= \text{target distribution}.
+\end{equation}
+A large family of numerical approaches rel{ies} on physics-based methods, and aims to efficiently sample the {distribution tail} with minimal computational effort and to avoid the inefficiency of a basic  accept-rejection algorithm.
+These methods are  specific to the model  at hand: among these methods, we mention  importance sampling \parencite[Chapter~4]{bucklew2004introduction}, MCMC with splitting -- \parencite{gob:liu:rare:2015},  or interacting particles system -- \parencite{delmoral2005genealogical}.
+Another family of simulation schemes {is} data-driven approaches {which} do not require the knowledge of the (supposedly existing) physical model behind the sample generation.
+These data-driven schemes take as input a data set of observations of given size $\ndata$ and design a generative model able to re-generate samples that mimic the empirical distribution of the observed data.
+This concept aligns with recent paradigms in Artificial Intelligence such as Generative Adversarial Networks (GANs) initiated by \parencite{goodfellow2014generative} and Variational Autoencoders (VAEs) by \parencite{kingma2014autoencoding}, score-based diffusion models \parencite{sohl2015deep}, normalising flows~\parencite{papamakarios2021normalizing}, etc.
 
-\section{Heavy-Tailed GANs}
-% Architecture: heavy-tailed latent noise (Pareto/Fréchet)
-% Key insight: Lipschitz maps preserve tail behavior
-% Discrete STDF representation (Proposition 1)
 
-\section{Approximation Theory}
-% Perfect representation (Proposition 2)
-% Main convergence bound (Theorem 1)
-% Error scales as O(N^{-1/(d-1)})
+Our work is in this vein for generating extreme samples.
+Unlike the classical uses of Deep Generative Models as mentioned above, where the number $\ndata$ of training data is generally colossal (millions), in the context of extreme events, $\ndata$ is small by nature (a few hundred at most).
+Standard training procedures are thus bound to have 
+poor performance {all the more so as, by construction, their design makes them unable to reproduce heavy and dependent tails~\parencite{allouche_ev-gan_2022}.}  
+The aim of this work is to design new efficient procedures taking advantage of the probabilistic structure behind extreme values.}
 
-\section{Algorithm}
-% Marginal transformation to unit Fréchet
-% Training procedure
-% Sampling procedure
+{\paragraph*{State of the art.}
+Very recently, the machine learning community became aware of the difficulties of sampling extremes using Deep Generative Models, requiring to appropriately adapt known generative methods to the extreme setting.
+Most of the newly designed algorithms were based on GANs, see an overview in \parencite{allouche_chapterextreme}.
+Three directions have been mainly investigated in the literature.
+First, certain works apply some preprocessing to the data to get rid of the tail heaviness, see Quant-GAN \parencite{wiese2020quant} and evtGAN \parencite{boulaguiem2022modeling}: essentially, it consists in suitably transforming each data coordinate in order to retrieve either Gaussian or uniform marginal distributions, then performing a usual GAN method and reverting to the original space by inverse transform.
+A second direction is to consider new latent variables $Z$ with a heavy-tailed distribution.
+ In~\parencite{feder2020htgan, huster2021pareto}, a Generalized Pareto Distribution is adopted for the latent distribution $\mu_Z$, in contrast to original GANs which use light-tailed distributions such as uniform or Gaussian.
+This idea finds its origins in a crucial observation: neural networks are Lipschitz functions~\parencite{wiese2020quant}.
+As such, they cannot transform a random variable with light-tailed to a distribution with heavier tail, this is the main result of~\parencite{liang_fattailed_2022}.
+Using heavy-tailed noise however raises an issue with the training procedure: if the underlying distribution is too heavy-tailed, the gradient of the loss function may not exist.
+To alleviate this, in \parencite{huster2021pareto}, the authors introduce a loss function designed to produce stable training.
+To be effective, these methods require to estimate accurately the tail-index parameters for each marginal distribution, which is a difficult task because  the number $\ndata$ of training data is usually small.
+In~\parencite{huster2021pareto}, the authors provide empirical evidence that the Pareto-GAN method is able to match heavy-tailed distributions embedded in lower dimensional manifolds in a high dimensional setup. 
+However, they do not provide a quantification of the power of Pareto-GAN to reproduce asymptotic dependence in the data, which is our main scope of interest in this paper.} 
 
-\section{Experiments}
-% Synthetic: Gumbel copula
-% Real data: S&P 500
-% Comparison: HTGAN vs light-tailed GAN (LTGAN)
+{A third approach consists in suitably parameterize the generator to account for extreme-value theory.
+This approach has been developed in \parencite{allouche_ev-gan_2022} (EV-GAN) 
+where the renormalized log-quantile (called tail index function by the authors) is learnt using ReLU neural networks. 
+The authors  provide error bounds in uniform norm according to the complexity of neural networks and the second-order conditions in extreme-value theory.
+The latter reference shows {that} 
+EV-GAN 
+largely outperforms usual GANs, and is able to accurately sample $X$ in dimension up to 50.
+For higher dimension, the marginals of $X$ are still accurately reproduced but the {tail dependence structure is under-estimated}.
+Our work tackles the problem of better learning the dependence between margins with GANs.
+
+
+{The closest work to ours is presumably~\parencite{hasan2022modeling}.
+The authors endeavour to approximate the stable tail dependence function (stdf) of the vector $X$ of interest, see Definition~\ref{def:stdf} later, which characterizes the dependence in the extremes, once the marginals have been standardized to a unit Fr\'echet scale.
+Recall that, once the stdf is known (even approximately), the vector $X$  can be sampled using the spectral representation of a max-stable process~\parencite[Theorem~2.1]{hofert2018hierarchical}. 
+In~\parencite{hasan2022modeling} two learning techniques of the stdf are introduced.
+On the one hand, a deterministic approach is proposed 
+using a dedicated architecture of neural networks called ``d-Max~NN". The Fr\'echet marginalised data are projected onto directions in the simplex leading to exponentially distributed data. An algorithm is then introduced to maximise the log-likelihood using randomised directions on the neural network parameters.
+On the other hand, a stochastic approach is designed, based on the stochastic representation of the stdf via the spectral measure
+(see Proposition~\ref{prop:stdf_SR}). 
+Note that this approach is calibrated using the previous  deterministic method.
+At first glance, our approach may look similar to~\parencite{hasan2022modeling} but it is actually quite different, even though we also work on unitary Fr\'echet marginals. 
+Here, we do rely on the spectral representation of max-stable processes, but we rather directly design a generative model of the vector $X$ using an unitary Fr\'echet latent noise.
+In our opinion, this is much simpler since our approach avoids truncating (at a poorly controlled rank) the max-stable representation.
+Then, in contrast to Pareto-GAN, we show a convergence result of the approximated stdf to the true one when the dimension of the latent noise increases.
+}
+
+{
+Last, we shall mention the Tail-GAN of \parencite{cont2022tail} in a financial setting, where a usual GAN is performed but the loss function for learning depends on the risk-metrics of the scalar quantity of interest (e.g. Value-at-Risk and Expected Shorfall).
+It is a way to enforce the generative model {to} reproduce  some specific metrics: note that this is different to sample a multidimensional extreme distribution.
+}
+
+On the VAE side, it is shown in~\parencite[Corollary~7]{lafon2023vae} that a VAE built with piecewise linear activation functions and Gaussian distributions
+cannot reproduce heavy-tailed margins. It is moreover established that the spectral measure (see Section~\ref{subsec:Measuring dependence in extremes})
+associated with a classical VAE output is necessarily discrete \parencite[Proposition~8]{lafon2023vae}.
+To overcome these problems, the authors
+ consider a univariate heavy-tailed distribution to sample the radius, and, conditionally on the latter, an angle is sampled from a multivariate normal distribution. The product of the two yields the desired multivariate regularly-varying vector. The appropriate KL-divergences are derived leading to two objective functions: one for the radius VAE and one for the angular VAE. In the recent work~\parencite{zhang2024flexibleefficientspatialextremes}, the authors develop a VAE incorporating the max-id spatial model in order to sample spatial extremes with  flexible and non-stationary dependence structures.
+
+
+\paragraph*{Our contributions.}
+
+Focusing on GANs,
+we investigate the representation power of neural network based generative models with heavy-tailed input noise.
+In particular, we study the ability of such models to reproduce multivariate asymptotic dependence, which is quantified by the stdf.
+To this end, we first provide a modification to the original GAN training to accommodate the specificity of heavy-tailed input noise.
+Then, the quality of approximation of the stdf by the modified GAN is assessed thanks to
+the stdf representation in terms of D-norms (see Section~\ref{subsec:Measuring dependence in extremes}).
+We show that the approximation error
+is decreasing when the dimension of the latent noise increases (see Theorem~\ref{theorem:main_claim}).
+Finally, we provide a set of experiments to illustrate the behaviour of the algorithm and perform a comparison with a benchmark method on both synthetic and real datasets.
+
+
+\paragraph*{Organization of the paper.}
+Section~\ref{sec:theory} is devoted to the theory on the representation capability of the stdf with GANs based on heavy-tailed input noise.
+The main theoretical tools are introduced before the statement of our approximation results.
+Experiments on synthetic and real datasets are summarized in Section~\ref{sec:experiments} to illustrate the generative power of heavy-tailed GANs.
+Some background results and the proofs of main results are postponed to the Supplementary ({Appendix}~\ref{supp:sec:background_evt} and {Appendix}~\ref{supp:section:Proofs of claims} {respectively}). Extra experiments are available in {Appendix}~\ref{section:Supplementary for experiments}.
+
+\paragraph*{Notations.} 
+
+\begin{itemize}
+    \item $[n]=\left\{i\in\N:\;1\leq i\leq n\right\}$ denotes the set of natural numbers from $1$ to $n$.
+    $\left\lceil\cdot\right\rceil$ denotes the ceil function.
+    \item The vectors of the canonical basis of $\R^d$ are $\ebf_i = (0,\dots,0,1,0,\dots,0),\;i\in[d],$ with a $1$ on the $i^{th}$ coordinate.
+    \item Vectors or matrices are denoted with bold symbols and scalar with roman ones.
+          The $i^{th}$ coordinate of a vector $\xbf$ is referred to as $x_i$.
+          Random variables are denoted with capital letters and constant (deterministic) values with small letters.
+          To fix ideas, $x$ is a constant scalar, $X$ is an $\R$-valued random variable, $\xbf$ is a constant vector and $\Xbf$ is a random vector.
+          Vectors with equal scalar coordinates are denoted in bold, such as $\zeros=(0,\dots,0)$ and $\ones=(1,\dots,1)$.
+          The dimension will be clear from the context.
+
+
+    \item Without further specifications, operations such as multiplication, division, $\max$, exponentiation and boolean operations on vectors are meant componentwise.
+          For instance, for two vectors $\xbf,\ybf\in\R^d$, $\xbf\,\ybf:=(x_1 y_1,\cdots,x_d y_d)$.
+          Boolean operations are meant componentwise: $\xbf \leq \ybf\Leftrightarrow \forall i\in[d],\;x_i\leq y_i$.
+          {The scalar product is denoted with a dot: $\xbf\cdot\ybf=\sum_{i=1}^d x_i y_i$.
+          }
+
+
+    \item The cumulative distribution function (cdf) of a random variable $\Xbf$ is denoted by $F_\Xbf$ or $F$ according to the context.
+          The cdf of the extreme-value distribution is denoted by $G$ and the associated domain of attraction is denoted by $\mda{G}$.
+          
+
+
+    \item $\supp(P)$ denotes the support of $P$.
+    \item 
+        The Pareto distribution is defined by its cdf $1_{x\geq 1} \left(1 - x^{-1/\gamma}\right)$ with $\gamma > 0$.
+          When introducing a Pareto distribution, we might also parametrize it with $\alpha = 1 / \gamma$.
+    
+    \item $\#A$ denotes the cardinal of a set $A$.
+\end{itemize}
+
+
+\section{Reproducing dependence in extreme regions with Generative Adversarial Networks: Theory}  
+\label{sec:theory}
+
+
+{
+Some background on extreme-value theory is briefly given in Section~\ref{subsec:EVT}.
+Section~\ref{subsec:Measuring dependence in extremes} provides the tools necessary to study dependence in extreme regions of a distribution. 
+Finally, some key elements on Generative Adversarial Networks (GANs) are recalled in Section~\ref{subsec:GAN}.
+Additional material on each topic is also given in the Supplementary ({Appendix}~\ref{supp:sec:background_evt}).
+%online Appendix \parencite{appendix:HAL}.
+Finally, our theoretical results are presented in Section~\ref{subsec:new}: we provide a quantization bound on how well GANs with heavy-tailed noise (HTGANs) approximate the stdf of a target distribution.}
+
+{\subsection{Extreme-value theory}\label{subsec:EVT}
+Extreme-value theory is a branch of statistics concerned with studying the upper tails of probability distributions.
+We refer to {Appendix}~\ref{subsec:appendix/EVT} in the Supplementary} 
+%\parencite[Section (A.1)]{appendix:HAL} 
+for a brief introduction to this theory.
+Given a $\R^d$ valued random vector $\Xbf$ with associated cdf $\xbf\in\R^d \mapsto F(\xbf) = \Prob{\Xbf\leq \xbf}$,  extreme-value theory establishes the asymptotic distribution of normalized maxima of realizations of $\Xbf$.
+Whence normalized to unit Fr\'echet margins \eqref{eq-frechet}%\parencite[Eq. (A.17)]{appendix:HAL}
+, the limiting distribution function 
+$G_\star$ is a simple max-stable distribution, see Definition \ref{def-max-stable}
+and Equation \eqref{eq:G_0}. 
+%\parencite[Definition A.2 and Equation (A.16)]{appendix:HAL}.
+As illustrated in the next paragraph, $G_\star$ encodes the
+dependence structure in the tails of $F$.}
+
+\subsection{Measuring dependence in extremes}
+\label{subsec:Measuring dependence in extremes}
+
+{We first recall the definition of the stable tail dependence function (stdf) associated with $F$.
+
+\begin{definition}{\parencite[Corollary 6.1.4]{haan_extreme_2006}}
+\label{def:stdf}
+  Let $F$ be a continuous cdf on $\R^d$ belonging to the max-domain of attraction of some distribution. 
+  Then, one can define
+  \begin{equation}\label{eq:stdf_lim}
+    \forall \xbf\in (0, \infty)^d:\;\ell_F(\xbf) = \lim_{t\to +\infty}t\,\Prob{1-F_1(X_1)\leq \frac{x_1}{t}\; \mbox{ or }\dots \mbox{ or }\; 1-F_d(X_d)\leq \frac{x_d}{t}},
+  \end{equation}
+  where $F_j$'s are the marginal cdf of $\Xbf$. 
+  The limit $\ell_F$ is the so-called \emph{stable tail dependence function} (stdf) of $F$.
+\end{definition}
+
+The stdf provides a ``normalized" representation of the dependence structure of the distribution 
+in the tails (as opposed to the copula function which globally models the dependence), in the sense that its marginals are normalized: the stdf does not  carry any information on the marginal distributions of the base distribution of interest.  
+
+The following proposition gives the classical parametrization of the dependence structure in terms of spectral measure. A more recent and less known parametrization using D-norms is provided in Theorem~\ref{th:stdf=d-norm} below.}
+
+{\begin{proposition}[Spectral representation of the stdf, {\parencite[Remark 6.1.16.]{haan_extreme_2006}}]\label{prop:stdf_SR}
+  Consider a cdf $F$ (as in Definition \ref{def:stdf}) and its stdf $\ell_F$. Then, there exists a probability measure $\Lambda$ on the simplex $\Delta_{d - 1} := \left\{\ombf\geq \zeros:\;\sumi \omega_i=1\right\}$ such that:
+
+  \begin{equation}\label{eq:stdf_SR}
+    \forall \xbf \in (0, \infty)^d:\;\ell_F(\xbf) = d\int_{\Delta_{d - 1}}
+    \maxi (\omega_i x_i)
+    \Lambda(\dd\ombf),
+  \end{equation}
+  with constraints:
+%  \begin{equation}
+   $ \forall i\in[d]:\;\int_{\Delta_{d - 1}}\omega_i\ \Lambda(\dd\ombf) = 1/d.$
+%  \end{equation}
+\end{proposition}}
+
+\paragraph*{Quantifying dependence in extremes with D-norms.} 
+{D-norms \parencite{falk_multivariate_2019} are a class of norms in vector space, very convenient for studying dependence in extremes.
+\begin{definition}[D-norms, {\parencite[Lemma 1.1.3]{falk_multivariate_2019}}]
+  \label{def:Dnorm}
+  Let $\Gbf = (\Gbf_1,\dots,\Gbf_d)\in \R^d$ be a random vector, whose components satisfy
+  for all $i\in[d]$, $\Gbf_i\geq 0$ \as 
+  and $\Esp{\Gbf_i} = 1$.
+  Then, 
+  \begin{equation}\label{eq:norm:D}
+    \norm{\Gbf}{\cdot}:\;\xbf\mapsto\norm{\Gbf}{\xbf} = \Esp{\maxi (|x_i|\Gbf_i)}
+  \end{equation}
+  defines a norm on $\R^d$, called a D-norm, and $\Gbf$ is called a generator of the D-norm.
+\end{definition}
+Main properties of the D-norm are recalled in {Appendix}~\ref{subsec:appendix/D-norms}.}
+%\parencite[Appendix (A.2)]{appendix:HAL}. 
+To alleviate the role of the generator, we may simply denote the above norm by $\norm{D}{\cdot}$. 
+The key role of D-norms is highlighted in the next result.
+\begin{theorem}
+  \label{th:stdf=d-norm} 
+  Let $F$ be a continuous cdf on $\R^d$ belonging to the max-domain of some distribution. Then, there exists a D-norm that exactly represents the stdf of $F$:
+  \begin{equation}\label{eq:stdf=d-norm}
+    \forall \xbf \in (0, \infty)^d,\qquad \ell_F(\xbf) = \norm{D}{\xbf}.
+  \end{equation}
+\end{theorem}
+This is a consequence of 
+Theorem~\ref{thm:appendix:Representation of simple max stable distributions} in the Supplementary.
+%\parencite[Theorem (A.7)]{appendix:HAL} in the Appendix.
+Note that the two representations in~\eqref{eq:stdf_SR} and in~\eqref{eq:norm:D}--\eqref{eq:stdf=d-norm} may look similar at first sight, but actually they are substantially different. While both representations involve a probability measure (the spectral measure~$\Lambda$ on the one hand, and that of the generator $\Gbf$ associated with the D-norm on the other hand), the second representation is more tractable for approximation purposes: Instead of designing a non-negative measure on the simplex $\Delta_{d-1}$, one \emph{simply} has to define a random vector $\Gbf\in [0,+\infty)^d$ with unit expectation.
+
+
+{\begin{definition}\label{defi:discrete:stdf} Let $F$ be a cdf satisfying the assumptions of Theorem~\ref{th:stdf=d-norm}. The stdf $\ell_F$ is said to be \emph{discrete}, with $N$ atoms, when its D-norm is related to a generator $\Gbf$ whose distribution is \emph{discrete}  and made of $N$ atoms.    
+\end{definition}
+
+\begin{example}\label{example:independent:margin} 
+
+  Let us consider the special case where $d=N$. 
+  Note that it can be typically the case of the input of a  generative model with a latent distribution of dimension $N$. Let $F$ be a cdf in $\R^N$ with independent  margins.
+  Then, let $\ell_F(\xbf)=\sum_{i\in [N]} x_i,\quad 
+  \forall \xbf \in (0, \infty)^N.$ 
+  This stdf is discrete with $N$ atoms: indeed, one can easily check that, if $\Gbf$ has the discrete uniform distribution on $\{N\,\ebf_1,\dots, N\,\ebf_N\}$, then $\Esp{\Gbf_i}=1$ for any $i\in[N]$, and its D-norm is given by
+  \begin{equation}
+    \norm{D}{\xbf}=\Esp{\max_{i \in [N]}(x_i \Gbf_i)}=\frac 1N \sum_{i\in [N]} x_i\, N=\ell_F(\xbf),\qquad 
+    \forall \xbf \in (0, \infty)^N.
+  \end{equation}
+
+
+  With similar arguments, it is easily checked that the spectral measure is the discrete uniform distribution on $\{\ebf_1,\dots, \ebf_N\}$.
+\end{example}
+}
+The  concept of Definition~\ref{defi:discrete:stdf} is at the core of our numerical scheme, since we will consider approximations based on discrete distributions for the generator $\Gbf$ in Section~\ref{subsec:new}.
+
+{\paragraph*{Characterization of simple max-stable distribution using D-norms and homogeneous function.}
+We aim at giving another criterion to establish the max-domain of attraction of a simple max-stable distribution. It will be crucially used in the proof of our main result (Theorem \ref{theorem:main_claim}).
+\begin{definition}[1-homogeneous function]\label{defi:homogeneous:function}
+  A function $h:[0,\infty)^d\to[0,\infty)^{d'}$ is  1-homogeneous if it satisfies:
+   $ \forall \xbf\in[0, \infty)^d,\;\forall \lambda\geq 0:\;h(\lambda\xbf)=\lambda h(\xbf).
+$
+  The set of 1-homogeneous continuous functions from $\mathcal{X}$ to $\mathcal{Y}$ is denoted by $\Hbb_1\left(\mathcal{X}, \mathcal{Y}\right)$.
+\end{definition}
+The next result claims that identifying the stdf (or equivalently the D-norm)  of a cdf $F$ (with asymptotically simple max-stable distribution) is equivalent to analyze tails of  1-homogeneous transforms of the associated random vector.
+\begin{theorem}[{\parencite[Theorem 4.4]{falk_new_2021}}]\label{th:max_domain_equiv}
+  Let $\Xbf$ be a random vector in $[0,+\infty)^d$ with continuous cdf $F$ and let $\norm{D}{.}$ be a D-norm in $\R^d$ generated by $\Gbf$.
+  The following equivalence holds:
+  \begin{align}
+    \label{eq:max_domain_equiv_1}
+    &\forall\xbf\in(0, \infty)^d:\;\; F^t(t\xbf) \tendsto{t\to \infty} \exp{-\norm{D}{\frac{1}{\xbf}}}  \\
+    \label{eq:max_domain_equiv_2}
+    \Longleftrightarrow 
+    \qquad&\forall h\in\Hbb_1([0, \infty)^d,[0, \infty)):\;\;t\Prob{h(\Xbf)>t} \tendsto{t \to \infty} \Esp{h(\Gbf)}.
+  \end{align}
+\end{theorem}}
+
+
+{An indirect consequence of the above theorem is that the limiting value $\Esp{h(\Gbf)}$ does not depend on the chosen generator of the D-norm, when $h$ is a continuous 1-homogeneous function,
+see~\parencite[Theorem 3.5]{falk_new_2021} for a direct proof.  
+}
+
+\subsection{Generative Adversarial Networks}\label{subsec:GAN}
+
+
+\paragraph*{Neural networks.} 
+{We refer to \parencite[Chapter 13]{murpy_2022} for a thorough introduction on neural networks.
+Let us consider fully connected neural networks, also called Multi Layer Perceptron (MLP).
+These neural networks consist of a chain of $L$ operations of the form:
+\begin{equation}\label{eq:NN}
+  \zbf_l=f_l\left(\zbf_{l-1}\right)=\varphi_l\left(\bbf_l+\mathbf{W}_l \zbf_{l-1}\right)
+\end{equation}
+for $l\in[L]$, 
+where $\zbf_l \in \R^{q_l}$, $\varphi_l:\R^{q_l}\to (\R^+)^{q_l}$ is an activation function, $q_l$ is the number of neurons on the layer $l$, 
+$\Wbf_l$ is a matrix
+and $\bbf_l$ is a bias vector. Note that
+$\zbf_0$ corresponds to the $q_0$-dimensional input of the network, while $\zbf_L$ 
+is the $q_L$-dimensional output.
+In this work, we focus on neural networks with ReLU activation functions: $
+\varphi_l(\zbf) = \max\left\{\zbf, \zeros\right\}$.
+The parameters of the network are:
+\begin{equation}\label{eq:theta_NN}
+  \theta = \left\{\bbf_1, \dots, \bbf_L, \Wbf_1, \dots, \Wbf_L\right\} \in \Theta 
+\end{equation}
+(activation functions are fixed), where $\Theta$ is the space of parameters, the full Euclidean space without constraints.
+\begin{proposition}
+  \label{prop-affine}
+  A neural network parameterized by~\eqref{eq:NN} with ReLU activation functions is a piecewise affine function. It is a continuous $1$-homogeneous function when the bias vectors are zero.
+\end{proposition}
+
+The proof is easy and left to the reader. 
+Combining Proposition~\ref{prop-affine} with Theorem~\ref{th:max_domain_equiv} shows that a distribution (with simple max-stable distribution) transformed by a ReLU neural network remains a heavy-tailed distribution with the same tail parameter $\gamma$.}
+
+{\paragraph*{Generative Adversarial Networks.}
+Generative modeling is the task of approximating at best a distribution of interest, here written $\Xbf \sim p_{\text{data}} \in \R^d$, and being able to draw samples from it.
+One way to do is to find a map $\mathcal{G}$ which takes as input a random variable $\Zbf \sim p_{\Zbf}\in\R^N $ which is easy to sample, such that:
+\begin{equation}\label{eq:approx_generator}
+  \mathcal{G}(\Zbf)  \overset{d}{\approx} \Xbf.
+\end{equation}
+The random vector $\Zbf$ is commonly referred as the latent noise and $p_\Zbf$ the latent distribution. Generative Adversarial Networks \parencite{goodfellow2014generative} are widespread generative models.
+GANs consist of a generator $\Gcal$ and a discriminator $\Dcal$.
+GANs play an adversial game where the generator tries to mimic the true distribution generating the data whereas the discriminator tries to uncover fake data points simulated by the generator. 
+Namely, GANs optimize for:
+\begin{equation}
+  \label{eq:GAN_objective}
+  \min_{\Gcal} \max_{\Dcal} V(\Dcal, \Gcal)\quad\text{where}\quad  V(\Dcal, \Gcal)=\mathbb{E}_{\Xbf \sim p_{\text {data }}}\left[\log \Dcal(\Xbf)\right]+\mathbb{E}_{\Zbf \sim p_{\Zbf}}\left[\log (1-\Dcal(\Gcal(\Zbf)))\right] ,
+\end{equation} 
+where $p_{\text {data}}$ is the distribution of the data and $p_{\Zbf}$ is the latent distribution.
+Usually, $\pdata$ is chosen among the uniform or the Gaussian distribution.
+Both $\Gcal$ and $\Dcal$ are neural networks.
+In this work, we consider neural networks parameterized with MLPs~\eqref{eq:NN},
+and, with the notations of~\eqref{eq:NN}, note that $q_0 = N$ and that $q_L = d$.
+}
+
+\subsection{New approximation results for the stdf}
+\label{subsec:new}
+{Our goal is to assess how well the dependence in the extremes of a target distribution
+can be by approximated with a GAN based on heavy-tailed independent input noise. 
+To this end, our first result establishes the nature of the stdf of a neural network output, when used with heavy-tailed input noise.
+
+\begin{proposition}
+  \label{prop:discret2}
+  Consider a random vector $\Zbf$ with a discrete \stdf $\ell_\Zbf$ with $N$ atoms.
+  Consider a neural network $G_{\theta,N}$, with ReLU activation functions and $L-1$ hidden layers, where $\theta$ is the parametrization of the network \eqref{eq:theta_NN} and $N$ is the dimension of the input noise ($q_0=N$). Assume that all the matrix weights $(\Wbf_1,\cdots, \Wbf_L)$ are non-negative. 
+  Then, the stdf of the output $G_{\theta,N}(\Zbf)$ is discrete with at most $N$ atoms.
+\end{proposition}
+See Section~\ref{section:Proof of Proposition prop:discret2}
+%\parencite[Section B.1]{appendix:HAL}
+for the proof.
+It appears that
+the output of a neural network with heavy-tailed input noise has a discrete stdf.
+The next result states that it is possible to attain perfect reproduction of any discrete stdf with MLP neural networks.}
+
+{\begin{proposition}
+  \label{prop:discret3}
+  Consider a heavy-tailed random vector $\Xbf$ with a discrete \stdf $\ell$  with $N$ atoms.
+  There exists a neural network $\mathcal{G}_{\theta^*, N}$ with parametrization $\theta^* \in \Theta$ and input noise $\Zbf\in\R^N$  with \iid unit Fr\'echet margins such that:
+  \begin{equation}
+    \ell = \ell_{\mathcal{G}_{\theta^*,N}(\Zbf)}
+  \end{equation}
+  where $\ell_{\mathcal{G}_{\theta^*,N}(\Zbf)}$ is the stdf of ${\mathcal{G}_{\theta^*,N}(\Zbf)}$.
+\end{proposition}
+In words, any discrete stdf can be perfectly approximated by a neural network with \iid unit Fr\'echet margins as input noise with sufficiently large dimension.}
+
+{When the stdf of interest is not discrete, our final result proves that it can be nevertheless approximated using a MLP neural network with an arbitrary precision.}
+{\begin{theorem}
+  \label{theorem:main_claim}
+  Let $\Xbf$ be a random vector in $\R^d$, with continuous cdf $F$, belonging to the max-domain of some distribution. Denote by $\ell_F$ its stdf that is related to a $D$-norm (Theorem~\ref{th:stdf=d-norm}).
+  Consider using a MLP neural network $\mathcal{G}_{\theta,N}$ with a single layer (\ie $L=1$) and with as latent noise a random vector of $N$ \iid unit 
+  Fr\'echet margins, and
+  denote by $\ell_{\mathcal{G}_{\theta,N}}$ its stdf.
+  Then,
+  \begin{align}
+    \label{eq:stdf_bound}
+    \inf_{\theta\in \Theta} \sup_{ \xbf \, \in (0, \infty)^d} \frac{\left|\ell_{F}(\xbf) - \ell_{\mathcal{G}_{\theta,N}}(\xbf)\right|}{\norm{\infty}{\xbf}} &\leq \epsilon(N) ,\\
+\label{eq:eps_equiv}
+    \epsilon(N) \sim  C(d)N^{-1 / (d - 1)} &\mbox{ as } {N\to\infty},
+  \end{align}
+  where $C(d)$ is a constant depending on $d$ and $\ell_F(\ones)$.
+    The bound~\eqref{eq:stdf_bound} is achieved with one layer neural networks.
+  \end{theorem}}
+  The intuition behind the bounds \eqref{eq:stdf_bound}-\eqref{eq:eps_equiv} can be developed as follows. Approximating the stdf amounts to approximating a probability measure in dimension $d$ using $N$ atoms; it is thus natural to expect an error bound of order $N^{-1/d}$. However, the random variable having this probability measure is subject to a realization or moment constraint (see the proof for details), which reduces the degrees of freedom by one, leading to an approximation error of at most order $N^{-1/(d-1)}$.
+
+In this previous theorem, note that the error bound is a worst case scenario.
+For example, when the stdf is discrete, the error is zero for $N$ sufficiently large in virtue of Proposition \ref{prop:discret3}.
+Let us highlight that, in view of the upper bound~\eqref{eq:eps_equiv}, the attainable precision of the neural network approximation increases with the dimension of the latent noise.
+However, the higher the dimension $d$, the slower is the convergence.  One can then expect that accurate approximations of the dependence in high dimension would require high dimensional latent noise, which is consistent with the intuition. 
+This will be illustrated in the Numerical Experiments section.
+
+In other words, the above result states  a denseness property. We would like to thank one of the referees to spot the analogy with the results from \parencite[Lemma~9, Theorem~3]{FOUGERES2013109}. 
+As a difference, we use other arguments (see the proof based on quantization tools) and, consequently, we are able to quantify the effect of both latent and ambient dimensions $N$ and $d$. Let us finally note that this denseness property is used in~\parencite{janssen2020k} to interpret the proposed $k$-means procedure as an inference method for max-linear models.
+
+
+
+\section{Numerical experiments} 
+\label{sec:experiments}
+{First, we describe in Section~\ref{subsec:exp/architecture} the proposed algorithms for training and sampling from a dataset presenting heavy-tailed characteristics.
+Second, experiments performed on synthetic datasets generated using the Gumbel copula
+are detailed in Section~\ref{subsec:exp/synthetic_data} to compare the proposed method with the standard GAN approach.
+Finally, experiments on the stock market index S\&P500 are presented in Section~\ref{subsec:exp/real_data}.}
+
+\subsection{Algorithms and implementation}
+\label{subsec:exp/architecture}
+\subsubsection{Algorithms}
+We accommodate the original GAN algorithm \parencite{goodfellow2014generative} to have a heavy-tailed latent noise.
+This idea originates from \parencite{huster2021pareto}.
+Algorithm~\ref{algo:learning} describes the learning phase while Algorithm~\ref{algo:generation} summarizes the generation phase.
+
+\begin{algorithm}[h]
+  \SetAlgoLined
+  \DontPrintSemicolon
+  \SetKwInOut{Input}{input}
+  \SetKwInOut{Output}{output}
+  \Input{
+
+  \begin{itemize}
+    \item Dataset $\left\{\Xbf^{(1)},\cdots,\Xbf^{\left(\ndata\right)}\right\}$ of $\ndata$ i.i.d. sample points in $\R^d$.
+    \item Fully connected initialized generator $\Gcal$ and discriminator $\Dcal$.
+    \item Estimators $\hat F_1,\dots,\hat F_d$ of marginal cdf. 
+    \item Tail parameter $\gamma>0$ for the renormalization step. 
+    \item GAN hyperparameters: Network architecture, optimization parameters and callbacks (early stopping, maximum number of iterations \dots). The parameters are dependent on the chosen implementation. See Section~\ref{subsubsec:implementation} for more details.   \\
+  \end{itemize}
+  }
+  \BlankLine
+  \Begin{
+  \begin{enumerate}
+    \item 
+    For any $j \in [d]$, estimate the marginal cdf of $X_j$ on the training set $\left\{X^{(1)}_j, \dots, X^{(\ndata)}_j\right\}$ by
+    \begin{equation}
+      x \in \R \mapsto \hat F_j(x)\in [0,1].
+    \end{equation}
+
+    \item Transform the marginals to Fr\'echet distributions with tail parameter $\gamma$:
+    \begin{equation}\label{eq:ht_normalization}
+      \forall i \in [\ndata],j \in [d]: {\tilde X}^{(i)}_j = \left(\frac{1}{1 - \hat F_j\left(X^{(i)}_j\right)}\right)^{\gamma}.
+    \end{equation}
+    \item Train GAN over transformed data $\left\{\tilde\Xbf^{(1)}, \dots, \tilde\Xbf^{\left(\ndata\right)}\right\}$: optimize~\eqref{eq:GAN_objective}  where $\pdata$ is a componentwise Pareto distribution with tail parameter $\gamma$ and independent margins. 
+  \end{enumerate}
+
+  \Return{the optimal generator $\Gcal^\star$, 
+  and the estimators $\hat F_1,\dots,\hat F_d$ of the margins.}
+  }
+  \caption{Generative modelling: learning algorithm}
+
+  \label{algo:learning}
+\end{algorithm}
+
+\begin{algorithm}[h]
+  \SetAlgoLined
+  \DontPrintSemicolon
+  \SetKwInOut{Input}{input}
+  \SetKwInOut{Output}{output}
+  \Input{
+  \begin{itemize}
+    \item Number of data points to sample $\nsample$.
+    \item Tail parameter $\gamma>0$.
+    \item Estimators $\hat F_1,\dots,\hat F_d$ of the margins.
+    \item Generator $\Gcal^\star$.
+  \end{itemize}
+  }
+  \BlankLine
+  \Begin{
+  \begin{enumerate}
+    \item 
+    Sample $\nsample$ points $\left(\zbf^{(1)}, \dots, \zbf^{(\rm nsample)}\right)$ from $\pdata$, a componentwise Pareto distribution with tail parameter $\gamma$ and independent margins.
+    \item Transform the noise through the generator: 
+    \begin{equation}
+      \forall i \in [\nsample]: \; \tilde\Xbf^{(i)}_{\rm sample} = \Gcal^\star(\zbf^{(i)}).
+    \end{equation}
+
+    \item Transform the sample points $\tilde \Xbf_{\rm sample}$ to the original scale with the inverse of the estimated margins:
+    \begin{equation}\label{eq:ht_normalization_inverse}
+      \forall i \in \left[\nsample\right], j\in [d]: \; \hat X^{(i)}_j = \hat F^{-1}_{j}(\tilde X^{(i)}_j).
+    \end{equation}
+  \end{enumerate}
+  }
+  \Return{Sampled points $\left\{\hat\Xbf^{(1)}, \dots, \hat \Xbf^{\left(\nsample\right)} \right\}$}.\;
+  \caption{Generative modelling: sampling algorithm}
+  \label{algo:generation}
+\end{algorithm}
+
+
+
+%\FloatBarrier
+
+ \paragraph*{Remarks about the marginals.}
+In Subsection~\ref{subsec:exp/real_data}, which focuses on experiments with real data, the estimator $\hat F$ is taken to be the empirical cdf. While other choices are possible -- since estimating a one-dimensional cdf is a classical problem in statistics -- this simple choice suffices to run Algorithm~\ref{algo:learning} and obtain an approximation of the generator $\Gcal^\star$. In doing so, we address the primary objective: reproducing the dependence structure in the extremes.
+It is important to note that Algorithm~\ref{algo:generation} requires access to the inverse cdf (\ie the quantile function). To ensure an accurate fit of the marginals -- while preserving the learned dependence -- we recommend using a quantile estimator that performs well across the entire distribution, both in the bulk and in the tails. A natural candidate is the estimator based on eLU-activated neural networks proposed by \parencite{allouche2022estimation}.
+
+
+\subsubsection{Implementation}
+\label{subsubsec:implementation}
+
+\paragraph*{Code.}
+
+{
+The implementation is based on a publicly available GitHub repository\footnote{https://github.com/eriklindernoren/PyTorch-GAN?tab=readme-ov-file\#gan}
+using the machine learning library PyTorch\footnote{https://pytorch.org/}.
+We adapt the source code so that both the generator and discriminator are fully connected MLPs~\eqref{eq:NN}.
+For writing a specific architecture of a neural network, we use a list that details all hidden layers, that is layers $q_l$ for $l\in[L - 1]$ in~\eqref{eq:NN}.
+As an example, a network parametrized by $[100, 200]$ means that it has 2 hidden layers, $L=3$, $q_1 = 100$ and $q_2 = 200$.
+For the activation functions, we use LeakyReLu \parencite{maas_rectier_nodate}:
+note that our theoretical result (Theorem~\ref{theorem:main_claim}) still holds since a LeakyReLu is a difference of two ReLUs.
+For gradient descent, we use the optimizer Adam \parencite{kingma_adam_2017} and we do not tune the base parameters. 
+ Early stopping is used for regularization.
+
+In these experiments, we allow the networks to have several hidden layers.
+The proof of Proposition~\ref{prop:discret3} only involves networks of depth one to handle the dependence in the extremes, but higher depths may be necessary to reproduce the dependence in the tails or in the bulk of the distribution.
+In  \eqref{eq:one_layer},
+%In \parencite[Eq. (B.27)]{appendix:HAL}, 
+it is seen that a one layer transformation produces a heavy-tail term (left term) and a bounded term.
+}
+Our aim is that on one side, we manage to catch the behaviour of the distribution tail with the left unbounded, 1-homogenous term and, on the other side, we hope to capture the behaviour of the bulk with the right bounded term. 
+
+{\paragraph*{Hardware.}
+
+All experiments were performed on the cluster  Cholesky\footnote{https://docs.idcs.mesocentre.ip-paris.fr/cholesky/hardware\_description/} of Ecole Polytechnique.
+Code was run on Intel Xeon CPU Gold 6230 20 cores @ 2.1 Ghz with 192 GB of memory.}
+
+
+\subsection{Experiments on simulated data}
+\label{subsec:exp/synthetic_data}
+
+
+We first propose in Section~\ref{sub-deux} a visual illustration of the behaviour of heavy-tailed latent noise models on a two dimensional dataset.
+Second, we investigate in Section~\ref{sub-high} the performance of Algorithm~\ref{algo:learning} on higher dimensional data and perform a comparison with the baseline GAN algorithm using Gaussian input noise.
+Specifically, we study the model's ability to reproduce data with both given dependence degree and tail heaviness.
+To this end, the target distribution is obtained by combining Gumbel, Gaussian and Hüsler-Reiß copulas  with Pareto margins.
+We refer to Section~\ref{subsec:appendix/copulas}
+%\parencite[Section A.4]{appendix:HAL} 
+for basic material on copulas.
+
+\subsubsection{Two-dimensional data: an illustration} 
+\label{sub-deux}
+
+
+Let us first consider a toy dataset of size $\ndata=10,000$ generated by a Gumbel copula in dimension $d=2$ with identically distributed Pareto margins, see the left panel of Figure~\ref{fig:gumbel_data_2d} for an illustration.
+It appears that, in the tail, 
+data are evenly distributed along the horizontal axis $\ebf_1$ and the vertical one $\ebf_2$.
+As a comparison, the right panel of Figure~\ref{fig:gumbel_data_2d} displays a plot of the input noise with independent Pareto random margins.
+In contrast to the Gumbel training data, the independent Pareto noise whence conditioned to being large in norm, is concentrated in the two directions $\ebf_1$ and $\ebf_2$.
+This is due to the fact that the spectral measure associated with independent Pareto random variable is discrete, with weights on $\ebf_1$ and $\ebf_2$.
+
+%[commentaire a revoir]\jp{[J'ai refait une dessus]} 
+The left {panels} of Figure~\ref{fig:generated_data_2d_grid} {show} simulated data generated by a GAN trained on the previously described dataset, using \( N \in \{2,3,5,10, {50}\} \) independent Pareto random variables as input noise. 
+The right {panels display} the histogram of the angles 
+%\(\arccos(\hat X^{(1)}/\|\hat\Xbf\|)\) 
+\(\arccos({\hat X_{1}/\|\hat\Xbf\|})\) 
+for the \(10\%\) largest Euclidean norms \(\|\hat\Xbf\|\). 
+For small latent dimensions (\( N \in \{2,3\} \)), spikes are clearly visible in the tail of the distribution: the generated datasets exhibit as many spikes as the dimension of the latent noise. 
+This is expected, since the spectral measure of i.i.d.\ Pareto noise is discrete, and, in accordance with Proposition~\ref{prop:discret2}, transforming \(N\)-dimensional independent Pareto noise (with a discrete spectral measure of \(N\) atoms) through a 1-homogeneous mapping yields a distribution whose spectral measure has at most \(N\) atoms. 
+For larger dimensions (\( N \in \{5,10\} \)), spikes become less pronounced, though still discernible, and the dependence structure appears visually closer to the target. 
+{For \( N = 50 \), the spikes are almost indistinguishable, and the scatter plot of the generated data closely resembles that of the real data (Figure \ref{fig:generated_data_2d_grid}-f).} {To sum up, these tests show that  the larger $N$ is, the closer the distribution gets to the target distribution, which supports the idea of convergence as $N$ tends to infinity, in line with our theoretical results.}
+
+\begin{figure}[h!]
+  \begin{center}
+    \centering
+      \includegraphics[width=0.35\linewidth]{figures/htgan/synthetic/2d_illustration/2d_data.png}
+      \qquad
+      \includegraphics[width=0.35\linewidth]{figures/htgan/synthetic/2d_illustration/2d_noise.png}    
+  \end{center}
+  \caption{Illustration in a two-dimensional setting on simulated data of size $\ndata=10,000$ with Pareto margins and tail parameter $\alpha=2.0$. Left panel: sample from a Gumbel copula with dependence parameter $\beta= 4 / 3$. Right panel:  sample with two independent margins.}
+  \label{fig:gumbel_data_2d}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\captionsetup[subfigure]{labelformat=parens,justification=centering}
+
+% ---------- Ligne 1 ----------
+\begin{subfigure}[b]{0.5\textwidth}
+  \centering
+  \begin{minipage}{0.4\linewidth} % 0.28 / 0.70 ≈ 0.4
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/gen_data_scatter_latent_dim=2.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.6\linewidth} % 0.42 / 0.70 ≈ 0.6
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/gen_data_theta_latent_dim=2.png}
+  \end{minipage}
+  \caption{$N=2$}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.5\textwidth}
+  \centering
+  \begin{minipage}{0.4\linewidth}
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/gen_data_scatter_latent_dim=3.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.6\linewidth}
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/gen_data_theta_latent_dim=3.png}
+  \end{minipage}
+  \caption{$N=3$}
+\end{subfigure}
+
+\vspace{0.6em}
+
+% ---------- Ligne 2 ----------
+\begin{subfigure}[b]{0.5\textwidth}
+  \centering
+  \begin{minipage}{0.4\linewidth}
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/gen_data_scatter_latent_dim=5.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.6\linewidth}
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/gen_data_theta_latent_dim=5.png}
+  \end{minipage}
+  \caption{$N=5$}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.5\textwidth}
+  \centering
+  \begin{minipage}{0.4\linewidth}
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/gen_data_scatter_latent_dim=10.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.6\linewidth}
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/gen_data_theta_latent_dim=10.png}
+  \end{minipage}
+  \caption{$N=10$}
+\end{subfigure}
+
+\vspace{0.6em}
+
+% ---------- Ligne 3 ----------
+\begin{subfigure}[b]{0.5\textwidth}
+  \centering
+  \begin{minipage}{0.4\linewidth}
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/gen_data_scatter_latent_dim=50.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.6\linewidth}
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/gen_data_theta_latent_dim=50.png}
+  \end{minipage}
+  \caption{$N=50$}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.5\textwidth}
+  \centering
+  \begin{minipage}{0.4\linewidth}
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/real_data_scatter.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.6\linewidth}
+    \includegraphics[width=\linewidth]{figures/htgan/synthetic/2d_illustration/real_data_theta.png}
+  \end{minipage}
+  \caption{Real data}
+\end{subfigure}
+
+
+\caption{Illustration of real and generated data in a two-dimensional setting for data from a Gumbel copula with $\beta=4/3$ and Pareto margins ($\alpha=2.0$). For each {subfigure} (a)-(f), on the left: scatter plot of data points; on the right: histogram of angles %$\arccos\left(X_1 / (X_1 + X_2)\right)$ 
+$\arccos(X_1 /{ \sqrt{X^2_1 + X^2_2}})$ 
+for the 10\% largest Euclidean norms.
+Subfigures~(a)-(e): $n_{\text{gen}}=50{,}000$ generated data after training with $\ndata=10{,}000$ points. 
+Subfigure~(f): real data.
+}
+\label{fig:generated_data_2d_grid}
+\end{figure}
+
+
+\subsubsection{Higher dimensional experiments on Gumbel copula}
+\label{sub-high}
+
+After a thorough understanding of the behaviour of the model in a two dimensional setting, we explore its performance on higher dimensional datasets, still using the Gumbel copula, but with a variety of dependence and tail coefficients.
+
+\paragraph*{Experimental setup.}
+
+The trained data are sampled from the $d$-dimensional Gumbel copula (see Section~\ref{subsec:appendix/copulas})
+%\parencite[Section  A.4]{appendix:HAL})
+ with $d\in\{2, 5, 10, 20, 50\}$ and dependence parameter $\beta\in\{4 / 3, 2, 4\}$, leading to Kendall's $\tau\in\{1 / 4, 1/2, 3/4\}$.
+See \eqref{eq:kendalls_tau}
+%\parencite[Equation  (A.25)]{appendix:HAL} 
+for a definition of Kendall's $\tau$.
+The margins are chosen to be Pareto distributed with shape parameter $\alpha\in\left\{1.5, 2.0, 2.5\right\}$.
+In each of the $5\times 3\times 3=45$ considered situations, $\ndata=10,000$ data points are simulated for training and $20,000$ data points are considered for testing.  
+Note that the testing set is larger than the training set
+in order to assess the ability of GANs to extrapolate to extreme regions unseen in training.
+In this synthetic case, we provide the tail-index $\gamma=1/\alpha$ to Algorithm~\ref{algo:learning} and focus on the quality of reproduction of dependence in extreme regions.
+
+\paragraph*{Metrics.}
+
+Two metrics are considered for assessing the performance of the GANS: the Absolute Kendall Error (AKE), see \parencite[Section~3.2 and Appendix~A]{allouche_ev-gan_2022} for a definition and some background, and the Sliced Wasserstein Distance (SWD), see 
+\eqref{eq:swd}.
+%\parencite[Equation  (A.26)]{appendix:HAL}.
+Since the focus is on extreme regions, we compute the Euclidean norm of all data points and select data points whose norms are larger than the upper $\xi$-quantile,
+with $\xi\in\{90\%, 95\%, 99\%\}$. Both metrics are then computed (denoted by {\sc ake$_\xi$} and {\sc swd$_\xi$}) on the resulting points.
+This operation is performed both on the sample generated by GAN methods and on the dataset simulated from the true distribution.
+These new subsamples are then normalized on the Euclidean sphere,
+where the Sliced Wasserstein distance is estimated.
+
+\paragraph*{Preliminary hyperparameter search.}
+
+We explore a number of possible parametrizations of GAN models within a selected range of hyperparameters.
+For both the generator and the discriminator, fully connected neural networks are used with the following 15 hidden dimensions: $[50]$, $[75]$, $[100]$, $[125]$, $[200]$, $[300]$, $[400]$, $[100, 100]$, $[200, 200]$, $[300, 300]$, $[400, 400]$, $[100, 200, 100]$, $[200, 400, 200]$, $[100, 200, 200, 100]$ and $[200, 400, 400, 200]$.
+For the latent dimension, we explore values $N$ ranging from $1$ to $200$.
+For the optimization parameter, values ranging (log-uniformly) from $10^{-6}$ to $10^{-1}$
+are tested.
+We investigate the use of four batch sizes: $\{128, 256, 512, 1024\}$.
+A Bayesian search (see \parencite{wu_hyperparameter_2019}) is implemented using weight and biases' sweep tool\footnote{https://docs.wandb.ai/guides/sweeps}.
+At first, some parametrizations are selected at random and, next, the probability for a configuration to be selected is updated with the use of a Bayesian rule.
+See the referred online documentation for more details on Bayesian hyperparemeter tuning.
+Considering the top performing models of this research, the following conclusions can be drawn on the choice of hyper parameters:
+Among tested models, best performing generators (80\%+) have a light parametrization (fewer parameters) $[100]$ or $[200]$, while best performing discriminators (80\%+) have a heavy  parametrization (more parameters) $[100, 200, 200, 100]$ or $[200, 400, 400, 200]$. 
+Bigger batch sizes yield better performances.
+Good values for the learning rate include range $\left[5\cdot10^{-6}, 5\cdot10^{-4}\right]$.
+
+
+\paragraph*{Setting up models for comparison.}
+
+After this hyperparameter exploration, two versions of GAN are compared:
+the base version of GAN with a Gaussian noise $\Zbf\sim \mathcal{N}(0, \Ibf_{N \times N})$, referred to as LTGAN (LT for light-tailed), and 
+ our version, Algorithm~\ref{algo:learning}, referred to as HTGAN (HT for heavy-tailed).
+Thanks to the previous insights on the preliminary hyperparameter search, we are able to choose a subset of evaluation hyperparameters to compare both models.
+Both models are run for each configuration.
+In order to have an exhaustive comparison, a grid search is performed on the  following range of hyperparameters: $N \in \{2, 5, 10, 20, 50, 80\}$, hidden dimensions ranging in $\{[100, 200, 100], [200, 400, 200], [100, 200, 200, 100], [200, 400, 400, 200]\}$ for the discriminator, in $\{[100], [200]\}$ for the generator, $\{10^{-4}, 10^{-5}\}$ for the learning rate.
+
+\paragraph*{Results.}
+
+It appears in Table~\ref{table:metrics} that HTGAN performs better than LTGAN with respect to all six metrics and all considered dependence coefficients $\beta\in\{4/3,2,4\}$ in the heavier tail setting $\alpha = 1.5$ (all percentages are above $50\%$).
+For $\alpha=2.5$, it appears that HTGAN fails to outperform the baseline on the $\beta =4$, $\alpha=2.5$ setting.
+It suggests that in low tail-index settings, light-tailed outputs still manage to provide a good approximation of the target distribution, even thought the target is heavy-tailed.
+For almost all experiment settings, HTGAN is comparatively better than LTGAN for the highest tail coefficient.
+For the sliced Wasserstein distance, it appears that HTGAN gets comparatively better as both $\beta$ and $\gamma= 1 / \alpha$ increase.
+This result is coherent with our theoretical development:
+It is known that (piecewise) linear transformations of Gaussian variables cannot generate (asymptotic) dependence in the tails~\parencite{wiese2020quant}, a case which is met when $\beta$ gets larger and larger.
+
+Figures \ref{fig:synthetic_metric_alpha=1.5} and \ref{fig:synthetic_metric_alpha=2.5}  plot the performance of both methods for $\alpha=1.5$ and $\alpha=2.5$, with varying values of $\beta$.
+With $\alpha=1.5$, the point cloud is well above the median and our method is better performing than the baseline.
+In the case $\alpha=2.5$, the difference is not neat and no clear conclusion can be drawn.
+
+\begin{figure}[htbp]
+\vspace{-5mm}
+  \centering
+
+  %sousfig a)
+  \begin{subfigure}[b]{0.9\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=1_5_theta=1_33_recadre.pdf}
+    \caption{$\alpha=1.5$, $\beta = 4/3$}
+  \end{subfigure}
+\vspace{0.2cm}
+
+%sousfig b)
+  \begin{subfigure}[b]{0.9\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=1_5_theta=2_0_recadre.pdf}
+    \caption{$\alpha=1.5$, $\beta = 2.0$}
+  \end{subfigure}
+\vspace{0.2cm}
+
+%sousfig c)
+  \begin{subfigure}[b]{0.9\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=1_5_theta=4_0_recadre.pdf}
+    \caption{$\alpha=1.5$, $\beta = 4.0$}
+  \end{subfigure}
+
+  \caption{Illustration in a $d$-dimensional setting on simulated data of size $\ndata=10{,}000$ from a Gumbel copula (with dependence parameter $\beta$) and Pareto margins (with tail parameter $\alpha=1.5$). Each group of $2 \times 3$ plots corresponds to one experimental setting, \ie a specification of $\alpha$ and $\beta$. Figures are averaged over dimensions $d \in \{2,5,10,20,50\}$. In each of these three groups: the first row plots the specified metric of HTGAN vs LTGAN in $\log$ scale for a given hyperparameter configuration. The second row is a histogram of the difference of the log of the metric for HTGAN vs LHTGAN for each parametrization. The legend corresponds to the proportion of cases where HTGAN performs better. \\ }
+  
+  \label{fig:synthetic_metric_alpha=1.5}
+\end{figure}
+
+% \begin{figure}[htbp]
+% \vspace{-5mm}
+%   \centering
+%   \begin{minipage}[b]{0.85\textwidth}
+%     \centering
+%     \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=1_5_theta=1_33.png}
+%   \end{minipage}
+
+%   \begin{minipage}[b]{0.85\textwidth}
+%     \centering
+%     \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=1_5_theta=2_0.png}
+%   \end{minipage}
+
+%   \begin{minipage}[b]{0.85\textwidth}
+%     \centering
+%     \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=1_5_theta=4_0.png}
+%   \end{minipage}
+
+%   \caption{Illustration in a $d$-dimensional setting on simulated data of size $\ndata=10,000$ from a Gumbel copula (with dependence parameter $\beta$) and Pareto margins (with tail parameter $\alpha=1.5$).
+%   Each three groups of $2 \times 3 $ plots corresponds to one experimental setting, \ie a specification of $\alpha$ and $\beta$.
+%   Figures are averaged over dimensions $d\in\{2,5,10,20,50\}$.
+%   In each of these three groups: the first row plots the specified metric of HTGAN vs LTGAN in $\log$ scale for a given hyperparameter configuration.
+%   The second row is a histogram of the difference of the log of the metric for HTGAN vs LHTGAN for each parametrization.
+%   The legend corresponds to the proportion of cases where HTGAN performs better.
+%   }
+
+%   \label{fig:synthetic_metric_alpha=1.5}
+% \end{figure}
+
+
+\begin{figure}[p]
+  \centering
+%sousfig a)
+  \begin{subfigure}[b]{0.9\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=2_5_theta=1_33_recadre.pdf}
+    \caption{$\alpha=2.5$, $\beta = 4/3$}
+  \end{subfigure}
+\vspace{0.2cm}
+
+%sousfig b)
+  \begin{subfigure}[b]{0.9\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=2_5_theta=2_0_recadre.pdf}
+    \caption{$\alpha=2.5$, $\beta = 2.0$}
+  \end{subfigure}
+\vspace{0.2cm}
+
+%sousfig c)
+  \begin{subfigure}[b]{0.9\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=2_5_theta=4_0_recadre.pdf}
+    \caption{$\alpha=2.5$, $\beta = 4.0$}
+  \end{subfigure}
+
+  \caption{Illustration in a $d$-dimensional setting on simulated data of size $\ndata=10,000$ from a Gumbel copula (with dependence parameter $\beta$) and Pareto margins (with tail parameter $\alpha=2.5$), $d\in\{2,5,10,20,50\}.$
+  See Figure \ref{fig:synthetic_metric_alpha=1.5} for further details.
+  }
+  \label{fig:synthetic_metric_alpha=2.5}
+\end{figure}
+
+% \begin{figure}[p]
+%   \centering
+%   \includegraphics[width=0.9\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=2_5_theta=1_33.png}
+%   \includegraphics[width=0.9\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=2_5_theta=2_0.png}
+%   \includegraphics[width=0.9\textwidth]{figures/htgan/synthetic/metrics/w_gaussian_vs_pareto_alpha=2_5_theta=4_0.png}
+%   \caption{Illustration in a $d$-dimensional setting on simulated data of size $\ndata=10,000$ from a Gumbel copula (with dependence parameter $\beta$) and Pareto margins (with tail parameter $\alpha=2.5$), $d\in\{2,5,10,20,50\}.$
+%   See Figure \ref{fig:synthetic_metric_alpha=1.5} for further details.
+%   }
+%   \label{fig:synthetic_metric_alpha=2.5}
+% \end{figure}
+
+
+\begin{table}[h]
+  \caption{Results on simulated data from a Gumbel copula. Percentage (\%) of parametrizations for which HTGAN is better than a LTGAN  for the six considered metrics. Results are given with precision $\pm 0.1\%$.
+    Values are averaged over data dimensions $d\in\{2,5,10,20,50\}$.
+          }
+\label{table:metrics}
+
+  \centering
+
+  \begin{tabular}{ll|rrr|rrr|rrr}    \\
+    \hline
+    & &  \multicolumn{3}{c|}{$\beta=4 / 3$}  & \multicolumn{3}{c|}{$\beta = 2$} & \multicolumn{3}{c}{$\beta = 4$}  \\
+    &  $\alpha$ &  
+    \multicolumn{1}{c}{$1.5$} & \multicolumn{1}{c}{2} & \multicolumn{1}{c|}{$2.5$}  & 
+    \multicolumn{1}{c}{$1.5$} & \multicolumn{1}{c}{$2$} & \multicolumn{1}{c|}{$2.5$}  & 
+    \multicolumn{1}{c}{$1.5$} & \multicolumn{1}{c}{$2$} & \multicolumn{1}{c}{$2.5$}  \\
+    \hline
+    & {\sc ake}\_90       & 65.8 & 68.1 & 65.6 & 80.4 & 78.4 & 66.7 & 88.7 & 86.6 & 72.6  \\ 
+    & {\sc ake}\_95       & 65.6 & 69.5 & 66.4 & 79.7 & 79.4 & 69.2 & 87.8 & 87.2 & 75.1     \\
+    & {\sc ake}\_99       & 62.5 & 67.4 & 65.1 & 77.0 & 80.1 & 72.7 & 86.8 & 88.0 & 78.4     \\
+    \hline
+    & {\sc swd}\_90       & 81.7 & 69.1 & 45.9 & 76.7 & 67.7 & 52.6 & 63.7 & 54.7 & 41.4     \\
+    & {\sc swd}\_95       & 84.5 & 74.3 & 51.1 & 76.9 & 66.7 & 54.3 & 62.0 & 52.2 & 39.5     \\
+    & {\sc swd}\_99       & 86.4 & 81.5 & 64.8 & 77.5 & 59.5 & 49.6 & 56.9 & 48.3 & 34.4     \\
+    \hline
+  \end{tabular}
+\end{table}
+
+
+\begin{table}[t]
+ 
+  \caption{Results on simulated data from a Gumbel copula. Statistics (mean, min, max) on three on the top 5\% best performing runs of HTGAN (best performing w.r.t. the {\sc swd}\_90 metric). Statistics are averaged over $\beta\in\{4/3,2,4\}$.} 
+  \label{table:latent_dim}
+  \centering
+  \begin{tabular}{lr|rrr|lll|lll}
+    \hline
+    &  & \multicolumn{3}{|c|}{$N$ (latent dimension)} & \multicolumn{3}{|c|}{$\hat{\alpha}$} & \multicolumn{3}{|c}{{\sc swd}\_90} \\
+    $\alpha$ & $d$ & mean & min & max & mean & min & max & mean & min &  max \\
+    \hline
+    \multirow[t]{5}{*}{1.5} & 2 & 75.96 & 10 & 195 & 1.53 & 1.16 & 1.72 & 0.03 & 0.01 & 0.06 \\
+    & 5 & 91.07 & 17 & 197 & 1.61 & 1.20 & 1.96 & 0.04 & 0.01 & 0.06 \\
+    & 10 & 90.69 & 21 & 197 & 1.72 & 1.30 & 2.23 & 0.04 & 0.01 & 0.07 \\
+    & 20 & 91.33 & 26 & 182 & 1.77 & 1.23 & 2.64 & 0.03 & 0.01 & 0.07 \\
+    & 50 & 107.98 & 22 & 188 & 2.05 & 1.31 & 4.00 & 0.02 & 0.01 & 0.04 \\
+    \cline{1-11}
+    \multirow[t]{5}{*}{2.0} & 2 & 40.71 & 5 & 122 & 2.07 & 0.70 & 3.44 & 0.04 & 0.01 & 0.08 \\
+    & 5 & 55.96 & 11 & 164 & 2.41 & 1.63 & 3.68 & 0.04 & 0.01 & 0.12 \\
+    & 10 & 57.36 & 10 & 187 & 2.83 & 1.49 & 4.66 & 0.04 & 0.01 & 0.10 \\
+    & 20 & 64.60 & 10 & 191 & 3.03 & 1.06 & 4.88 & 0.03 & 0.01 & 0.07 \\
+    & 50 & 69.02 & 14 & 187 & 3.42 & 1.63 & 5.27 & 0.02 & 0.01 & 0.04 \\
+    \cline{1-11}
+    \multirow[t]{5}{*}{2.5} & 2 & 39.24 & 2 & 154 & 2.82 & 1.27 & 4.92 & 0.04 & 0.01 & 0.10 \\
+    & 5 & 50.20 & 7 & 177 & 3.54 & 1.33 & 7.63 & 0.05 & 0.01 & 0.13 \\
+    & 10 & 57.40 & 9 & 174 & 4.17 & 1.31 & 7.40 & 0.04 & 0.01 & 0.09 \\
+    & 20 & 72.98 & 12 & 175 & 4.32 & 0.97 & 8.79 & 0.03 & 0.01 & 0.06 \\
+    & 50 & 58.02 & 9 & 169 & 4.44 & 1.07 & 7.97 & 0.02 & 0.01 & 0.04 \\
+    \cline{1-11}
+    \hline
+  \end{tabular}
+
+\end{table}
+
+\paragraph*{Latent dimension.}
+
+Equation~\eqref{eq:stdf_bound} gives evidence that a higher value of the latent dimension $N$ is necessary to obtain a better approximation of the dependence structure.
+For each experiment specification (\ie a value for $\alpha$ and for $d$), we have performed a Bayesian hyperparameter search \parencite{wu_hyperparameter_2019} with 400 runs, with the same hyperparameter ranges as for the previous experiment section.
+Table~\ref{table:latent_dim} summarizes statistics on the latent dimension, $\hat{\alpha}$ and {\sc swd}\_90 for the top 5\% run on each experiment.
+It appears that, empirically, the theoretical result is verified:
+generally, for the various values of $\alpha$, as the dimension of the data increases, the optimal value of the latent dimension increases.
+We also note that, for each value of $\alpha$, as the dimension of the data increases, the estimate $\hat{\alpha}$ increases accordingly, which means lower tails. 
+However, this conclusion is to be interpreted with caution in view of the great variability associated with the statistics (reflected by the values taken by min and max).
+This may be a consequence of the instability in training generative models with heavy-tailed inputs~\parencite{hickling_flexible_2024}. 
+
+
+\subsubsection{Other models: Gaussian and Hüsler-Reiß copulas}
+
+We extend our evaluation to higher dimensions using two dependence structures:
+the multivariate {Hüsler--Reiß} (HR) extreme-value copula and the {Gaussian} copula.
+These represent two qualitatively different tail regimes: HR exhibits non-trivial asymptotic tail dependence, whereas the Gaussian copula is asymptotically independent.
+
+\paragraph*{Background: multivariate Hüsler--Reiß.}
+The HR model is a max-stable (extreme-value) dependence model that arises as the limit of componentwise maxima of \emph{log-Gaussian} vectors, see~\parencite{HuslerReiss1989}.
+In dimension $d$, the dependence is encoded by a matrix $(\lambda_{ij})_{1\le i,j\le d}$ with $\lambda_{ii}=0$ and $\lambda_{ij}>0$ for $i\neq j$.
+Smaller $\lambda_{ij}$ means stronger extremal dependence between components $i$ and $j$; larger $\lambda_{ij}$ weakens it.
+In the bivariate case, the upper tail dependence coefficient is
+\begin{equation}
+    \chi_{ij}=2\{1-\Phi(\lambda_{ij})\},
+\end{equation}
+{where $\Phi$ is the cumulative distribution function of the standard Gaussian distribution.}
+Clearly, $\chi_{ij}\downarrow 0$ as $\lambda_{ij}\uparrow\infty$.
+A convenient spectral construction is via a centered Gaussian vector $\mathbi{Z}\in\mathbb{R}^d$ with covariance $\Sigma$ derived from $(\lambda_{ij})$ (Brown--Resnick representation): Set $\mathbi{Y}=\exp{\mathbi{Z}}$, normalize $\mathbi{S}=\mathbi{Y}/\sum_k Y_k$, draw $E\sim\mathrm{Exp}(1)$, and form a unit-Fr\'echet HR vector $\mathbi{X}^{\mathrm{Fr}}=\mathbi{S}/E$. Arbitrary continuous margins are then obtained by monotone transforms.
+
+\paragraph*{Background: Gaussian copula.}
+Let $\mathbi{Z}\sim\mathcal{N}_d(0,\Sigma)$ with equicorrelation $\rho\in(-1/(d-1),1)$, set $U_i=\Phi(Z_i)$ and apply marginal transforms to obtain $X$ from a Gaussian copula.
+For $|\rho|<1$ the Gaussian copula is asymptotically independent ($\chi=0$), but larger $\rho$ increases sub-asymptotic dependence.
+
+More details on the specific experimental design for these two models are given in Subsection \ref{subsec:detais-HR&G}.
+\paragraph*{Qualitative summary.}
+We summarize results in Table \ref{table:metrics:RH&Gaussian}.
+Across both datasets, the trends mirror those observed for the Gumbel copula: heavier tails (lower $\alpha$) consistently amplify the relative advantage of HTGAN over LTGAN.
+Therefore, both in asymptotic dependence and in independence settings, HTGAN outperforms LTGAN.
+Additional figures are provided in Appendix~\ref{section:Supplementary for experiments}.
+
+\begin{table}[h]
+  \caption{Results on simulated data from Hüsler-Reiß and Gaussian copulas. Percentage (\%) of parametrizations for which HTGAN is better than a LTGAN for the six considered metrics. Results are given with precision $\pm 0.1\%$.
+    Values are averaged over data dimensions $d\in\{2,5,10,20,50\}$.
+          }
+\label{table:metrics:RH&Gaussian}
+
+  \centering
+
+  \begin{tabular}{ll|rrr|rrr} 
+    \hline
+    & &  \multicolumn{3}{c|}{Hüsler-Reiß}  & \multicolumn{3}{c|}{Gaussian}   \\
+    &  $\alpha$ &  
+    \multicolumn{1}{c}{$1.5$} & \multicolumn{1}{c}{2} & \multicolumn{1}{c|}{$2.5$}  & 
+    \multicolumn{1}{c}{$1.5$} & \multicolumn{1}{c}{$2$} & \multicolumn{1}{c|}{$2.5$}   \\
+    \hline
+    & {\sc ake}\_90       & 78.3 & 81.9 & 70.8 & 62.3 & 57.0 & 42.9  \\ 
+    & {\sc ake}\_95       & 76.7 & 78.6 & 67.4 & 59.2 & 56.4 & 47.2     \\
+    & {\sc ake}\_99       & 65.6 & 73.3 & 60.2 & 58.3 & 53.8 & 46.2     \\
+    \hline
+    & {\sc swd}\_90       & 78.6 & 63.3 & 34.4 & 96.9 & 96.7 & 78.3     \\
+    & {\sc swd}\_95       & 75.8 & 68.6 & 45.6 & 94.7 & 93.6 & 79.4     \\
+    & {\sc swd}\_99       & 48.3 & 44.2 & 34.2 & 92.2 & 90.0 & 77.8     \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\subsection{Experiments on real data}
+\label{subsec:exp/real_data}
+
+The proposed HTGAN method is tested on 
+the publicly available dataset\footnote{https://www.kaggle.com/datasets/camnugent/sandp500} consisting of daily data for companies of the S\&P500.
+The S\&P500 is a stock market index tracking of the 500 most valuable companies in the United States of America.
+The signal of interest is the absolute value of the normalized marginal returns for each stock:
+%\begin{equation}
+  $r_t = \left| \left(X_{t + 1} - X_t\right) / X_t\right|,$
+%\end{equation}
+which are bounded below by zero and only have an upper tail.
+The dataset consists of $\ndata = 1259$ normalized marginal returns for each ticker.
+Companies are organized using the Global Industry Classification Standard (GICS).
+This classification divides companies into 11 sectors:
+Energy, Materials, Industrials, Consumer Discretionary, Consumer Staples, Health Care, Health Care, Financials, Information Technology, Communication Services, Utilities and Real Estate.
+Each sector is divided further into industry groups, industry and sub-industry.
+The returns of the S\&P500 present a particular correlation structure
+illustrated in Figure~\ref{fig:heatmaps} by a heatmap of the table consisting of estimated Kendall's tau for every pair of stock ticker, see the Appendix for more details on Kendall's tau coefficient.
+It appears that returns are more correlated within each sector, especially in both the Financials and the Utilities sectors, than between sectors.
+Therefore, in the following, the performance of LTGAN and HTGAN are assessed on the two subsets associated with sectors Financials and Utilities, having both strong correlations (see Figure~\ref{fig:heatmaps}).
+Note that the number of tickers for the Financials and Utilities sector are not the same:
+ $d = 27$ for the Financial sector, and $d=57$ for the Utilities sectors.
+
+Before moving to the results, let us mention that on the application side of portfolio management, it is important to model the dependence of extreme asset returns well, as shown in  \parencite{mainik2015portfolio}, in order to manage risks more accurately.  This supports the use of HTGAN compared to LTGAN. Their study compares the traditional Markowitz approach with the Extreme Risk Index -- a method based on multivariate EVT -- to optimize a portfolio of S\&P 500 stocks: their results show the superiority of a model that better accounts for dependencies in the tails, compared to the one based only on covariances.
+
+\paragraph*{Sectors and subsectors.}
+\label{par:sectors}
+The subsectors for the financial sector are: Asset Management \& Custody Banks, Consumer Finance, Diversified Banks, Financial Exchanges \& Data, Insurance Brokers, Investment Banking \& Brokerage, Life \& Health Insurance, Multi-Sector Holdings, Multi-line Insurance, Casualty Insurance, Regional Banks and Processing Services.
+For the Utilities sector, Subsectors are: Electric Utilities, Gas Utilities, Independent Power Producers \& Energy Traders, Multi-Utilities and Water Utilities.	
+
+\begin{figure}[h!] % 'p' specifier for placing the figure on a separate page
+  \centering
+  \begin{minipage}[t]{0.65\textwidth}
+  \includegraphics[width=\textwidth]{figures/htgan/sp500/heatmaps/full_correlation_matrix_zoom.png}
+  \end{minipage}\hfill
+  %\vspace{2\baselineskip} % Vertical space between the rows
+  \begin{minipage}[t]{0.35\textwidth}
+    \centering
+    \vspace{-8.3cm}
+    \includegraphics[width=0.89\textwidth]{figures/htgan/sp500/heatmaps/financials_correlation_matrix_zoom.png}
+
+\medskip
+    \centering
+    \includegraphics[width=0.89\textwidth]{figures/htgan/sp500/heatmaps/utilities_correlation_matrix_zoom.png}
+  \end{minipage}
+  % Leave the second column blank if only two images are needed in the second row
+  \caption{Estimated Kendall's $\tau$ for every pair of index considered. Left: every S\&P500 ticker. On the top right: Tickers for the Financials sector. On the bottom right: Tickers for the Utilities sector. 
+  A comprehensive list of sectors and subsectors is given in Paragraph~\ref{par:sectors}.}
+  \label{fig:heatmaps}
+\end{figure}
+
+
+
+\paragraph*{Data normalization.}
+
+In the normalizing step~\eqref{eq:ht_normalization} of Algorithm~\ref{algo:learning}, two values of $\gamma=1/\alpha$ are investigated: $\alpha=1.5$ and $\alpha=2.5$.
+The cumulative distribution function is estimated using its empirical counterpart:
+\begin{equation}
+  \widehat{F}_j(x) = \frac{1}{\ndata + 1} \sum_{i=1}^\ndata \mathbb{I}\left\{X_j^{(i)} \leq x\right\}.
+\end{equation}
+This transformation is not invertible, and therefore it is not possible to proceed to step~\eqref{eq:ht_normalization_inverse} in the generation step of Algorithm~\ref{algo:generation}.
+Therefore, we skip this step in the generation process.
+In our evaluation, we solely focus on the good reproduction of dependence in extreme regions (\ie the difficult task).
+Our criteria do not assess how well the marginals are fitted.
+
+
+\paragraph*{Results.}
+Figure~\ref{fig:sp500_metric} presents the results for experiments run on the S\&P500 dataset.
+The results argue in favor of better performance of the heavy-tailed noise setting when data is renormalized to Pareto margins with a larger tail index (case $\alpha=1.5$).
+This can be seen in the proportion of cases in which HTGAN performs better than LTGAN: 62.5\%, 64.3\% and 63.7\% respectively for {\sc swd}\_50, {\sc swd}\_80 and {\sc swd}\_90 metrics.
+In the case of a lighter tail, $\alpha=2.5$, the performance of HTGAN is degraded, with relative performances of 38.7\%, 30.4\% and 34.5\% respectively for {\sc swd}\_50, {\sc swd}\_80 and {\sc swd}\_90 metrics.
+Therefore, for better accuracy in extreme regions, we argue in favor of a smaller $\alpha$ in the renormalization step. 
+In summary, HTGAN is generally more effective than LTGAN on this dataset.
+In addition to this conclusion, we provide visual illustrations of the performance of HTGAN on the Financials dataset in Figure~\ref{fig:real_data_illustration} of the supplementary material.
+
+
+\begin{figure}[h!]
+  \centering
+
+  \begin{subfigure}[b]{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/htgan/sp500/metrics/w_sp500_alpha=1_5_recadre.pdf}
+    \caption{$\alpha = 1.5$}
+  \end{subfigure}
+  \vspace{0.2cm}
+  \begin{subfigure}[b]{\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{figures/htgan/sp500/metrics/w_sp500_alpha=2_5_recadre.pdf}
+    \caption{$\alpha = 2.5$}
+  \end{subfigure}
+
+  \caption{ 
+  Results of the performance of HTGAN vs LTGAN on the Utilities ($d=27$) and Financials subsectors ($d=57$) of the S\&P500 dataset.
+  Results are aggregated with respect to the dimension $d$ for plot. 
+  Each two groups of $2 \times 3 $ plots corresponds to one experimental setting, \ie $\alpha=1.5$ (top) and $\alpha=2.5$ (bottom).
+  In each of these two groups: the first row plots the specified metric of HTGAN vs LTGAN in $\log$ scale for a given hyperparametrization configuration.
+  The second row is a histogram of the difference of the log of the metric for HTGAN vs the metric for LTGAN for each parametrization.
+  The legend corresponds to the proportion of cases where HTGAN performs better.
+  }
+  \label{fig:sp500_metric}
+\end{figure}
+
+% \begin{figure}[h!]
+%   \centering
+%   \begin{subfigure}[b]{\textwidth}
+%   \centering
+%   \includegraphics[width=\textwidth]{figures/htgan/sp500/metrics/w_sp500_alpha=1_5_zoom.png}
+%   \caption{\emm{$\alpha = 1.5$}}
+%   \end{subfigure}
+%   \vspace{0.2cm}
+%   \begin{subfigure}[b]{\textwidth}
+%   \centering
+%   \includegraphics[width=\textwidth]{figures/htgan/sp500/metrics/w_sp500_alpha=2_5_zoom.png}
+%   \caption{\emm{$\alpha = 2.5$}}
+%   \end{subfigure}
+%   \caption{ 
+%   Results of the performance of HTGAN vs LTGAN on the Utilities ($d=27$) and Financials subsectors ($d=57$) of the S\&P500 dataset.
+%   Results are aggregated with respect to the dimension $d$ for plot. 
+%   Each two groups of $2 \times 3 $ plots corresponds to one experimental setting, \ie $\alpha=1.5$ (top) and $\alpha=2.5$ (bottom).
+%   In each of these two groups: the first row plots the specified metric of HTGAN vs LTGAN in $\log$ scale for a given hyperparametrization configuration.
+%   The second row is a histogram of the difference of the log of the metric for HTGAN vs the metric for LTGAN for each parametrization.
+%   The legend corresponds to the proportion of cases where HTGAN performs better.
+%   }
+%   \label{fig:sp500_metric}
+% \end{figure}
+
 
 \section{Conclusion}
+We have provided a theoretical framework to analyse how a HTGAN behaves in extreme regions.
+We have established a bound on the quality of approximation of the  stable tail dependence function of the target distribution.
+This analysis builds upon the deep connections between Extreme Value Theory and the theory of D-norms.
+
+Our numerical experiments support the theoretical results. They show that HTGAN significantly outperforms a standard LTGAN in capturing complex dependencies in the extremes, both on synthetic heavy-tailed datasets with varying dependence structures and on real-world data. We have also demonstrated the key role of the latent dimension in enhancing the model’s ability to reproduce such extreme dependencies.
+
+This work highlights, both theoretically and empirically, how introducing a large latent dimension into generative models can improve the modelling of complex dependence structures in extreme regions. While our application focus here has been on financial data, extending this methodology to other domains -- such as image generation -- remains an exciting direction for future work.
+
+Some important challenges are left open. In particular, we have not addressed the training instability that may arise when working with heavy-tailed inputs. Furthermore, there is ambiguity in selecting the tail parameter $\alpha$ for the marginal normalization step. We suggest treating $\alpha$ as a hyperparameter to be tuned during training, depending on the application and the data at hand.
+%For this theoretical development, we made an extensive use of the deep connections between Extreme Value Theory and the theory of D-norms.
+%The numerical experiments support the theoretical findings. Especially, they demonstrate the superiority of the proposed method, HTGAN, in reproducing dependence in extreme regions compared to a standard LTGAN, on both a variety of synthetic heavy-tailed distribution exhibiting different dependence behaviours and a real dataset. We have also demonstrated the influence of the latent dimension in reproducing dependence in these regions.
+%However, we have not addressed the issue of instability of training models with heavy-tailed inputs. This is left to further works. There also remains an ambiguity regarding a sensible choice for the tail parameter $\alpha$ in the marginal normalization step of the learning algorithm. We suggest that $\alpha$ should be treated as an hyperparameter of the method that is left to tune by the practitioner in the learning phase. 
+
+
+\section*{Acknowledgements}
+
+The authors thank the referees for  their constructive remarks which improve the manuscript.
+They acknowledge the support of the Chair ``Stress Test, Risk Management and Financial Steering'', led by the French Ecole Polytechnique and its Foundation and sponsored by BNP Paribas. S. Girard also gratefully acknowledges support from the French National Research Agency under the grant ANR-23-CE40-0009. 
+
+\clearpage
+% Supplementary material (appendix removed to not affect subsequent chapters)
+
+\centerline{\textbf{Supplementary}}
+
+\section{Theoretical background}\label{supp:sec:background_evt}
+Section~\ref{subsec:appendix/EVT} provides additional background on extreme-value theory to complement Section~\ref{subsec:EVT}.
+Section~\ref{subsec:appendix/D-norms} is devoted to D-norms, introduced in Section~\ref{subsec:Measuring dependence in extremes}.
+Section~\ref{subsec:appendix/quantization} focuses on the theory of quantization.
+Finally, Section~\ref{subsec:appendix/copulas} provides some details on copulas and measures of dependence.
+
+\subsection{Extreme-value theory}
+\label{subsec:appendix/EVT}
+
+\subsubsection{General set-up}
+Consider a $\R^d$ valued random vector $\Xbf$ with associated cdf $\xbf\in\R^d \mapsto F(\xbf) = \Prob{\Xbf\leq \xbf}$.
+The primary goal of extreme-value theory is to establish the asymptotic distribution 
+of well normalized maxima of realizations of $\Xbf$, see \parencite{resnick_extreme_1987,beirlant_statistics_2004,haan_extreme_2006} for reference textbooks. 
+Let $(\Xbf_i)_{i\in[n]}$ be an \iid sample from $F$
+and consider
+%\begin{equation}\label{eq:max_renormalization}
+$\Mbf_n:=\frac{\max_{i\in[n]}\Xbf_i - \bn}{\an},$
+%\end{equation}
+where $\an>\zeros$ and $\bn$ are normalizing sequences in $\R^d$. Clearly,
+the cdf of $\Mbf_n$ is given by
+$%\begin{equation}\label{eq:max_distribution}
+  F_{\Mbf_n}(\xbf) = F^n(\an\xbf + \bn).$
+%\end{equation}
+This remark gives rise to the following definition:
+\begin{definition}[Max-Domain of Attraction (MDA), {\parencite[Section 6.1.2]{haan_extreme_2006}}]\label{th:MMDA_char}
+  A cdf $F$ on $\R^d$ is said to be in the max-domain of attraction of a cdf $G$, denoted by $F\in \mda{G}$, if there exist sequences $\an>0$ and $\bn$, $n\in\N$ such that:
+\begin{equation}\label{eq:mda_sequential}    \forall\xbf\in\R^d:\;F^n(\an\xbf+\bn) \tendsto{n \to \infty} G(\xbf).
+  \end{equation}
+\end{definition}
+In other words, the normalized maximum of a sample from $F$ converges in distribution
+to a random vector with cdf $G$.
+It can be shown that the limiting distribution function is necessarily max-stable, 
+as defined below:
+
+\begin{definition}[Max-stable distribution, {\parencite[Section 6.1.2]{haan_extreme_2006}}] 
+  \label{def-max-stable}
+  A cdf $G$ on $\R^d$ is called max-stable if, for any $n\in \N$, there exist sequences $\an > 0$ and $\bn \in \R^d$ such that 
+  \begin{equation}\label{eq:max_stable}
+    \forall \xbf \in \R^d:\;\;G^n(\an\xbf + \bn) = G(\xbf).
+  \end{equation}
+\end{definition}
+Besides, convergence~\eqref{eq:mda_sequential} can be extended to a continuous counterpart;
+one has $F\in \mda{G}$ if and only if there exist two functions $\at > 0\in \R^d$ and $\bt \in \R^d$ such that:
+\begin{equation}\label{eq:mda_continuous}
+  \forall\xbf\in\R^d:\;       F^t(\at\xbf+\bt) \tendsto{t \to \infty} G(\xbf).
+\end{equation}
+
+{\subsubsection{Margins}
+Let us highlight that, if $F$ fulfills~\eqref{eq:mda_sequential} or~\eqref{eq:mda_continuous}, 
+then its margins $F_j$ satisfy
+\begin{equation}
+  \forall x\in\R:\;  F_j^n\left(a_{j, n}x+b_{j, n}\right)\tendsto{n \to \infty}G_j(x),
+\end{equation}
+where $G_j$ denotes the $j$th margin of $G$, $j\in[d]$. The \emph{univariate} extreme-value theorem (see for instance \parencite{Fisher_Tippett_1928,Gnedenko_1943}) then
+provides a parametric form for the cdf $G_j$s  which 
+generalizes the parametrizations of Fr\'echet ($\gamma > 0$), Gumbel ($\gamma = 0$) and reverse-Weibull ($\gamma < 0$):
+
+\begin{theorem}[{\parencite[Theorem 1.1.3]{haan_extreme_2006}}]
+  \label{th:FisherTippet}
+  The $\R$-valued cdf's satisfying~\eqref{eq:mda_sequential} are of the form $G_\gamma(a\cdot+b)$ with $a>0$, $b\in\R$ and $\gamma\in\R$, where $G_\gamma$ is a Generalized Extreme Value Distribution (GEVD) defined as
+  \begin{equation}\label{eq:EVD}
+    \forall x\in\R,\;1+\gamma x >0:\;G_{\gamma}(x) = \exp{-\left(1+\gamma x\right)^{-1/\gamma}}.
+  \end{equation}
+  When $\gamma=0$, $G_0$ is interpreted as the pointwise limit in~\eqref{eq:EVD}: $G_0(x)=\exp{-e^{-x}}$.
+\end{theorem}
+Therefore, each margin $G_j$ of $G$ can be written as $G_j=G_{\gamma_j}$ following~\eqref{eq:EVD} with $\gamma_j\in\R$, $j\in[d]$.
+Let us note that, for each max-stable cdf $G$, one can consider $G_\star$, 
+the so-called associated simple max-stable distribution, which is defined as:
+\begin{equation}\label{eq:G_0}
+  \forall \xbf\in\R^d:\;G_\star(\xbf) = G\left(\frac{\xbf^{\gammabf} - \ones}{\gammabf}\right),
+\end{equation}
+with  $\gammabf = (\gamma_j)_{j\in[d]}\in\R^d$.
+The margins of $G_{\star,j}$ of $G_\star$ are unit Fr\'echet distributed \ie
+\begin{equation}
+  \label{eq-frechet}
+  \forall x>0,\; G_{\star,j}(x)=\exp{-1/x}.
+\end{equation}
+As a consequence, it is possible to characterize a GEVD with two components: On the one hand, the marginal tail indices $\gammabf$, which characterize its margins and, on the other hand, its dependence structure encoded in $G_\star$.}
+
+\subsubsection{Dependence structure}
+The following result establishes a strong link between the stable tail dependence function (stdf) of $G$ (as introduced in Definition~\ref{def:stdf}) and its simple max-stable cdf $G_\star$.
+
+\begin{proposition}[{\parencite[Section 6.1.5]{haan_extreme_2006}}]
+  \label{prop:stdf}
+  Consider a max-stable cdf $G$ and its associated simple max-stable cdf $G_\star$ defined in \eqref{eq:G_0}.
+  The stdf of $G$ is given by
+  \begin{equation}
+    \forall \xbf\in(0, \infty)^d:\; \ell_G(\xbf) = - \log G_\star(1 / \xbf).
+  \end{equation}
+\end{proposition}
+We show in the next paragraph that both $\ell_G$ and $G_\star$ can be interpreted in terms of D-norms, which is a key property for our analysis.
+
+\subsection{D-norms}
+\label{subsec:appendix/D-norms}
+Let us first recall classical results from multivariate extreme-value theory through the lens of D-norms. The reference monograph on the matter is~\parencite{falk_multivariate_2019}.
+
+\subsubsection{Definition and basic properties}
+We start with basic definitions.
+\begin{definition}[Norm and D-norms]
+  A function $\left\|\cdot\right\|:\R^d\to\R^{+}$ is a norm on $\R^d$ if it verifies three conditions: a) \textit{Positive definiteness},
+  b) \textit{Absolute Homogeneity},  
+  c) \textit{Triangle inequality}.
+
+  A subset of norms is  the set of D-norms defined by
+  \begin{equation}
+    \norm{\Gbf}{\cdot}:\;\xbf\in \R^d\mapsto\norm{\Gbf}{\xbf} = \Esp{\maxi(|x_i|\Gbf_i)}
+  \end{equation}
+  for a non-negative random variable $\Gbf\in \R^d$ with unit expectation (Definition~\ref{def:Dnorm}), $\Gbf$ is also known as the generator of the D-norm.
+\end{definition}
+Let us give a few remarks. First, since D-norms are monotone and radially symmetric, not all norms are D-norms (see \parencite[Chapter 1]{falk_multivariate_2019}). Second,  usual norms (such as the $L_p$-norms for $p\in [1,\infty]$) are D-norms.  
+Last, observe that there are infinitely many  generators $\Gbf$ leading to the same D-norm: multiply $\Gbf$ by an independent positive random variable $\Ubf$ with unit expectation, it readily gives  $\norm{\Gbf\Ubf}{\cdot}=\norm{\Gbf}{\cdot}$. Hence, to ease notations, sometimes we may prefer to write the above norm by $\norm{D}{\cdot}$ to focus less on the  generator $\Gbf$; in such a situation, we refer to the generator $\Gbf$ associated with the D-norm by writing $\Gbf\triangleleft \norm{D}{\cdot}$, which reads ``$\Gammabf$ generates $\norm{D}{\cdot}$".
+Despite the multiple generators associated with the same D-norm, the following theorem  provides a uniqueness result on the choice of $\Gbf$ when the norm of the random variable $\Gbf$ is constrained.
+
+
+\begin{theorem}[Normed Generators, {\parencite[Theorem 1.7.1]{falk_multivariate_2019}}]
+  \label{th:normed_generators}
+  Let $\norm{}{\cdot}$ be an arbitrary norm on $\R^d$. For any D-norm $\norm{D}{\cdot}$ on $\R^d$, there exists a generator $\Gbf\triangleleft \norm{D}{\cdot}$ and a constant $c$ with the additional property $\Prob{\|\Gbf\|= c}=1$.
+  The distribution of the generator is uniquely defined.
+\end{theorem}
+Let us remark that taking $\norm{}{\cdot}=\norm{1}{\cdot}$ as the $L_1$-norm, the constant $c$ is necessarily~$d$: indeed, 
+%\begin{equation}
+ $ \norm{1}{\Gbf} = c$ implies $c = \Esp{\norm{1}{\Gbf}} = \sumi\Esp{\Gbf_i} = d. $
+%\end{equation} 
+
+
+\subsubsection{Relation with stdf}
+The  next result is fundamental to connect a stdf to a D-norm.
+\begin{theorem}[Representation of simple max stable distributions]
+  \label{thm:appendix:Representation of simple max stable distributions}
+  A cdf $G_\star$ on $\R^d$ is simple max-stable if and only if there exists a D-norm $\norm{D}{\cdot}$ on $\R^d$ such that:
+  \begin{equation}\label{eq:simple_max_stable_representation}
+    \forall \xbf\in(0, \infty)^d:\;G_\star(\xbf) = \exp{-\left\|\frac{\ones}{\xbf}\right\|_D}.
+  \end{equation}
+  In particular, if $G$ is a max-stable cdf on $\R^d$, then its stdf is given by
+  \begin{equation}
+    \label{eq:stdf:Dnorm}
+    \ell_G(\xbf) = \norm{D}{\xbf}.
+  \end{equation}
+\end{theorem}
+The first statement \eqref{eq:simple_max_stable_representation} is taken from \parencite[Theorem 2.3.3]{falk_multivariate_2019} or \parencite[Theorem 4.1]{falk_new_2021}, while the second one \eqref{eq:stdf:Dnorm} follows from Proposition \ref{prop:stdf}.
+
+\subsection{Quantization}\label{subsec:appendix/quantization}
+\textbf{The quantization problem.}
+The quantization problem is concerned with finding the best approximation of a random vector $\Xbf\in\R^d$ with a quantized version, \ie a version that takes a discrete number of values. For a general reference on quantization, see \parencite{graf_2000}.
+Finding the best approximation of a random vector depends on the chosen measure.
+% Throughout this work, we focus on the quantization with respect to the distance:
+% \begin{equation}
+%   \rho_{\infty}(\mu, \nu) = \sup\left\{\norm{}{\Xbf - \Ybf}, \: \Xbf \sim \mu, \Ybf \sim \nu\right\}
+% \end{equation}
+% \emmi{je n'ai pas l'impression qu'on ait besoin d'une def g\'en\'erale de W ici car tu utilizes seulement la norme sup en omega. de plus la quantification controle les erreurs sur les r\'ealisations, voir chapitre 10 de GL00, c'est plus fort qu'un controle sur les lois. Wasserstein mesure les distances entre lois et n'est pas le plus adapt\'e au pb, d'ailleurs dans GL00 l'utilisation de Wasserstein est assez marginal. Le lemme 10.5[GL00] ne suffit il pas Ã  ton pb?}
+% \jpp{J'ai modifi\'e la distance en ne gardant que la norme sup.}
+% where the norm $\norm{}\cdot{}$ is a specified norm defined on $\R^d$, for example the Euclidean norm. 
+{Define the quantization problem \parencite[Section 10.1]{graf_2000} of a probability measure $P$, for a given norm $\norm{}{\cdot}$ (for example the Euclidean norm), as:
+%for the $\rho_\infty$ distance as:
+\begin{align}
+  e_{N, \infty}(P) %&= \inf\left\{\rho_\infty(P, Q):\#\supp(Q) \leq n\right\}   \\
+  &:= \inf_{f: \R^d\to\R^d}\left\{\text{$P$-esssup}\, \|\Xbf - f(\Xbf)\|:\# f(\R^d)\leq N\right\}   \\
+  \label{eq:covering_number1}
+  &= \inf_{\begin{array}{cc}
+    &  {\alphabf\subset\R^d}   \\
+    & {\#\alphabf\leq N}
+  \end{array}}\sup_{\xbf\in\supp(P)}\min_{\abf \in \alphabf}\|\xbf-\abf\|,
+\end{align}
+ where $f: \R^d\to\R^d$ is a quantizer.
+Since $e_{N, \infty}(P)$ depends on the probability measure $P$ only through its support, sometimes (see Lemma \ref{lemma:union_covering} below) we will write $e_{N, \infty}(A)$ as a function of a set $A\subset \R^d$ (that can be taken as the support of $P$).}
+%\emmi{on pourrait pr\'eciser que pour le cas r=infty, cela depend de P qu'a travers son support (section 10.1). Sinon c'est bizarre d'avoir $e_n$ d\'efini pour des probas puis aprÃ¨s pour des ensembles!!  $e_{n,\infty}(A)$ est le n-th covering radius de A}
+%\jpp{Le problÃ¨me g\'en\'eral pour r r\'eel n'est plus introduit.}
+
+{Then, if $\supp(P)$ is compact, Jordan measurable with positive volume \parencite[p.3]{graf_2000}, the following limit exists:
+\begin{equation}\label{eq:quantization_coefficient}
+  Q_\infty\left(\supp(P)\right) = \lim_{N\to\infty} N^{1/d}e_{N, \infty}(P).
+\end{equation}
+Note that $Q_\infty\left(\supp(P)\right)$ 
+%the quantization coefficient 
+does not depend on the law of $P$ but only on its support. 
+Therefore, we will interchangeably use a probability distribution or a set as input of $Q_\infty(\cdot)$.
+%\emmi{@Jean: orthographe de proba. Sens de "We will in ..."?}
+%\jp{Ok, trait\'e}
+%\emmi{le resultat d'existence de la limite a t'il besoin que le bord du support de P soit de mesure nulle?}
+%\jp{non. voir p.3}
+The limit $Q_\infty\left(\supp(P)\right)$ is called the covering coefficient or quantization coefficient of order $\infty$ and can be expressed in terms of the covering coefficient $Q_\infty\left([0, 1]^d\right)$.}
+{Moreover, with a further constraint, we have the following theorem:
+\begin{theorem}[{\parencite[Theorem 10.7]{graf_2000}}]
+  \label{th:quantization_lim}
+  Let $A\subset \R^d$ be a non empty compact set with $\lambda^d\left(\partial A\right) = 0$.
+  Let $Q_\infty\left([0, 1]^d\right)$ be the quantization coefficient of $[0,1]^d$ defined in \eqref{eq:quantization_coefficient}.
+  Then $Q_\infty\left([0, 1]^d\right) > 0$ and: \begin{equation}\label{eq:asymptotic_quantification_number}
+    \lim_{N \to \infty} N^{1 / d}e_{N, \infty}(A) = Q_\infty\left([0, 1]^d\right) \lambda^d(A)^{1 / d},
+  \end{equation}
+where $\lambda^{d}$ is the Lebesgue measure in dimension $d$.
+\end{theorem}
+We state the following technical lemma, which will be helpful for the proof of Theorem~\ref{theorem:main_claim}:}
+
+\begin{lemma}[{\parencite[Lemma 10.6]{graf_2000}}]
+\label{lemma:union_covering} \hfill
+  \begin{enumerate}
+      \item Let $A, B\subset \R^d$ be nonempty compact sets with $A\subset B$.
+              Then, 
+            \begin{equation}\label{eq:quantization_subset}
+              \forall N\in \N:\;e_{N, \infty}(A) \leq e_{N, \infty}(B).
+            \end{equation}
+      \item Let $N$, $m$ and $\{N_k\}_{k\in[m]}$ be positive integers such that $\sum_{k\in [m]} N_k\leq N$ and consider $m$ nonempty compact sets $\left\{A_k\right\}_{k\in[m]}$. Then,
+          \begin{equation}\label{eq:covering_union1}
+            e_{N, \infty}\Big(\bigcup_{k\in[m]}A_k\Big) \leq \max_{k\in[m]}e_{N_k,\infty}\left(A_k\right).
+          \end{equation}
+  \end{enumerate}
+\end{lemma}
+  Here is a particular case of \eqref{eq:covering_union1} when $N\geq 2m$:
+\begin{equation}\label{eq:covering_union2}
+    e_{N, \infty}\Big(\bigcup_{k\in [m]}A_k\Big) \leq \max_{k\in[m]}e_{\left\lceil N / m\right\rceil-1, \infty}\left(A_k\right).
+  \end{equation}
+{\begin{proof}
+  The proof of \eqref{eq:covering_union1} can be found in \parencite[Lemma 10.6]{graf_2000}.
+  Equation~\eqref{eq:covering_union2} is deduced from Equation~\eqref{eq:covering_union1} with $N_k = \left\lceil N / m \right\rceil-1$ for all $k\in[m]$.
+\end{proof}}
+
+\subsection{Copulas, measures of dependence}
+\label{subsec:appendix/copulas}
+
+\textbf{Copulas.}
+Let us consider a $d$-variate random vector $\Xbf$ from a cdf $F$ with continuous margins~$F_j$.
+Sklar's Theorem \parencite{sklar_fonctions_nodate} states that there exists a unique function $C:[0, 1]^d\to [0,1]$ such that,
+for all $\xbf\in\R^d$,
+%\begin{equation}
+ $ F(x_1,\dots, x_d) = C(F_1(x_1), \dots, F_d(x_d)).$
+%\end{equation}
+
+Introducing for any $j \in [d]$ the uniformly distributed random variable $U_j = F_j(x_j)$, 
+the copula $C$ is the cdf of the joint random vector $\left(U_1, \dots, U_d\right)$.
+Copulas are a tool for studying dependence of probability objects, independently from the margins. 
+See~\parencite{nelsen_introduction_2006} for a thorough overview. As an example, the Gumbel copula is given by (see \parencite[Equation (2.4.2.)]{nelsen_introduction_2006}):
+\begin{equation}\label{eq:gumbel}
+  \forall \ubf \in [0, 1]^d: \; C_\beta (\ubf) = \exp{-\Big(\sum_{i\in[d]} (-\log(u_i)^\beta\Big)^{1 / \beta}},
+\end{equation}
+where $\beta \geq 1$.
+
+\begin{definition}[Kendall's $\tau$, {\parencite[Theorem 5.1.3.]{nelsen_introduction_2006}}]
+  Let $C$ be a bivariate copula. Its associated Kendall's $\tau$ is:  \begin{equation}\label{eq:kendalls_tau}
+    \tau = 4\E\left[C(U_1,U_2)\right] - 1,
+  \end{equation}
+where $(U_1,U_2)\sim C$. 
+\end{definition}
+Kendall's $\tau$ is a common measure of dependence for copulas, see~\parencite[Section~6.8]{joe2014dependence} for an estimation procedure. Note that Kendall's $\tau$ for the Gumbel copula is given by $\tau = 1 - {1}/{\beta}$, $\beta\geq 1$.
+
+
+\noindent \textbf{Wasserstein distance.}
+Let  $\mu$ and $\nu$ be two measures on $\R^d$. Considering a cost function $c:\R^d\times\R^d\rightarrow \R^+$ and $p\geq 1$, the $p$ - Wasserstein distance associated with the cost $c$ between $\mu$ and $\nu$ is defined as {\parencite[Chap. 6]{villani2009optimal}}:
+\begin{equation*}%\label{eq:WD}
+  \mathcal{W}_p(\mu, \nu) = \Big(\inf_{\gamma\in\Gamma(\mu, \nu)}\E_{(\Xbf, \Ybf)\sim \gamma}\left[c(\Xbf, \Ybf)^p\right]\Big)^{1/p},
+\end{equation*}
+where $\Gamma(\mu, \nu)$ is the set of \textit{couplings} of $\mu$ and $\nu$, \ie the set of distributions on $\R^d\times\R^d$ such that the marginals are respectively $\mu$ and $\nu$.
+The Wasserstein distance suffers from the fact that there exists no closed formula to compute it, nor very accessible computable estimates in dimensions higher that one.
+In order to perform estimation, we therefore rely on the sliced-Wasserstein distance, which is an efficient proxy, much used for computations in experimental settings \parencite{Nadjahi2021}.
+It is computed by randomly projecting the two compared measures on axes defined by directions $\vbf $ and averaging over the projections.
+Specifically, the sliced-Wasserstein distance is defined as:
+\begin{equation}\label{eq:swd}
+  \text{\sc swd}_p(\mu, \nu)=\underset{\vbf \sim \mathcal{U}\left(\mathbb{S}^{d-1}\right)}{\mathbb{E}}\left(\mathcal{W}_p^p\left(\vbf_{\#} \mu, \vbf_{\#} \nu\right)\right)^{1/p},
+\end{equation}
+where $\mathbb{S}^{d-1} $ is the Euclidean unit sphere, $\vbf_\# \mu$ (respectively $\vbf_\#\nu$) stands for the pushforward of the projection $\Xbf\in \mathbb{R}^d\mapsto \langle \Xbf, \vbf\rangle\in\R$, where $\Xbf \sim \mu$ (respectively $\nu$).
+
+\section{Proofs of claims}
+\label{supp:section:Proofs of claims}
+\subsection{Proof of Proposition~\ref{prop:discret2}}
+\label{section:Proof of Proposition prop:discret2}
+The following states an interesting corollary of Theorem \ref{th:max_domain_equiv}, which we are the first to prove formally as far as we know.
+
+\begin{corollary}[of Theorem \ref{th:max_domain_equiv}]\label{corollary:linear_map}
+  Let $\Zbf \in \R^{N}$ be a positive random vector with continuous cdf $F_\Zbf\in\mda{G_{\Gbf_\Zbf}}$ where $G_{\Gbf_\Zbf}$ is a simple max-stable distribution
+  \ie $F_\Zbf$ satisfies~\eqref{eq:max_domain_equiv_1} and~\eqref{eq:max_domain_equiv_2}.
+  Consider $\Phi\in\Hbb_1\left([0, \infty)^{N},[0, \infty)^{d}\right)$, such that:
+  \begin{equation}
+    \Esp{\Phi\left(\Gammabf_\Zbf\right)}> \zeros.
+  \end{equation} 
+  Let $\Xbf = \Phi(\Zbf)$. Then, $\Phi\left(\Gammabf_\Zbf\right)/\Esp{\Phi\left(\Gbf_\Zbf\right)}=:\Gammabf_\Xbf$ is a valid generator of a D-norm and $F_{\Xbf} \in\mda{G_{\Gbf_\Xbf}}$ where $G_{\Gbf_\Xbf}$ is a simple max-stable distribution. 
+Moreover, the normalizing constants to ensure convergence in~\eqref{eq:mda_continuous} are $\at=t\,\Esp{\Phi\left(\Gammabf_\Zbf\right)}$ and $\bt = \zeros$.
+\end{corollary}
+
+
+\begin{proof}
+  {In view of the characterization of Theorem \ref{th:max_domain_equiv}, consider any  $h\in\Hbb_1\left([0, \infty)^{d},[0, \infty)\right)$  and
+  \begin{equation}
+    \Psi_h:
+    \left\{
+    \begin{array}{ccc}
+      [0, \infty)^{N} &\to & [0, \infty),\\
+      \zbf &\mapsto & h\left(\frac{\Phi(\zbf)}{\Esp{\Phi(\Gammabf_\Zbf)}}\right).
+    \end{array}
+    \right.
+  \end{equation}
+  Clearly, $\Psi_h$ is continuous $1$-homogeneous as composition of the continuous 1-homogeneous functions $\Phi$ and $h$.
+  Since $F_{\Zbf}$ verifies \eqref{eq:max_domain_equiv_2}, it follows that:
+  \begin{equation}
+    t\,\Prob{h\left(\frac{\Phi(\Zbf)}{\Esp{\Phi(\Gammabf_\Zbf)}}\right)>t} =t\,\Prob{\Psi_h(\Zbf)>t} \tendsto{t \to \infty} \Esp{\Psi_h(\Gbf_\Zbf)}=\Esp{h\left(\frac{\Phi(\Gammabf_\Zbf)}{\Esp{\Phi(\Gammabf_\Zbf)}}\right)}.
+  \end{equation}
+  Introducing  $\Ybf = \Phi(\Zbf)/\Esp{\Phi(\Gammabf_\Zbf)}  = \Xbf / \Esp{\Phi(\Gammabf_\Zbf)}  $
+  and its corresponding distribution function~$F_{\Ybf}$, the previous convergence can be rewritten as:
+  \begin{equation}
+    \forall h\in\Hbb_1\left([0, \infty)^{d},[0, \infty)\right):\;\;t\,\Prob{h\left(\Ybf\right)>t} \tendsto{t \to \infty} \Esp{h\left(\Gammabf_\Xbf\right)},
+  \end{equation}
+  so that $\Ybf$ satisfies characterization \eqref{eq:max_domain_equiv_2} in Theorem~\ref{th:max_domain_equiv}.
+  Moreover, since $\Esp{\Gammabf_\Xbf} = \ones$ and the coordinates of $\Gammabf_\Xbf$ are non-negative, $\Gammabf_\Xbf$ is indeed the generator of a D-norm. Therefore:
+  \begin{equation}
+    \forall\xbf\in(0, \infty)^d:\;\; F_{\Ybf}^t(t\xbf) \tendsto{t\to \infty} \exp{-\norm{\Gammabf_\Xbf}{\frac{1}{\xbf}}}.
+  \end{equation}
+  Noting that $F_{\Ybf}(\xbf) = F_{\Xbf}(\Esp{\Phi(\Gammabf_\Zbf)}\xbf)$ finally proves
+  \begin{equation}\label{eq:mda_h_transform}
+    \forall\xbf\in(0, \infty)^d:\;\;F_{\Xbf}^t(t\,\Esp{\Phi(\Gammabf_\Zbf)}\xbf) \tendsto{t\to \infty} \exp{-\norm{\Gammabf_\Xbf}{\frac{1}{\xbf}}}=:G_{\Gammabf_\Xbf}(\xbf),
+  \end{equation}
+  and the result is proved.}
+\end{proof}
+
+
+We now complete the proof of Proposition \ref{prop:discret2}.
+The previous result holds for continuous 1-homogeneous function $\Phi$, which is not exactly the situation with a neural network with ReLU activation functions because of the bias terms (see Proposition \ref{prop-affine}). However, we claim that, asymptotically, these bias terms do not play any role on the stdf. To see this, let us investigate the behavior of a ReLU-neural network when going from a layer to the next one.
+
+
+Denoting by $\sigma$ the ReLU activation function, and supposing that $\varphi_l = \sigma,\; \forall l\in[L]$, we have
+\begin{align}\label{eq:one_layer}
+\begin{split}
+  \Zbf_{l} &= \sigma\left(\Wbf_{l}\Zbf_{l-1} + \bbf_{l}\right) \\
+  &= \sigma\left(\Wbf_{l}\Zbf_{l-1}\right)  + \left[\sigma\left(\Wbf_{l}\Zbf_{l-1} + \bbf_{l}\right) - \sigma\left(\Wbf_{l}\Zbf_{l-1}\right)  \right].
+  \end{split}
+\end{align}
+On the one hand, $  \sigma\left(\Wbf_{l}\Zbf_{l-1}\right)$ is a 1-homogeneous function of $\Zbf_{l-1}$ and is thus a heavy-tailed random variable if $\Wbf_{l} \neq \zeros$ and $\Zbf_{l-1}$ is heavy-tailed itself. On the other hand, the remaining term $\big[\cdots\big]$ in~\eqref{eq:one_layer} 
+is a bounded random variable (bounded by 
+$|\bbf_{l}|$); the stdf of the sum of a heavy-tailed random variable and a bounded one is the stdf of the heavy-tailed random variable.
+The stdf of~\eqref{eq:one_layer} is therefore the stdf of the transformation without the bias, and by induction the stdf of the output is the stdf of the input after iterative applications of $\sigma\left(\Wbf_{l} \; \cdot\right)$ for $l\in[L]$, which is 1-homogeneous continuous. Let denote by $\Phi$ the output of the $L$ compositions of 
+$\sigma\left(\Wbf_{l}\;\cdot\right)$: since the matrix weights $\Wbf_{l}$ are non-negative,   $\Phi\in \Hbb_1\left([0, \infty)^{N},[0, \infty)^{d}\right)$. Therefore, Corollary~\ref{corollary:linear_map} applies and so the stdf associated with the output of the network is $\Gammabf_{\mathcal{G}_\Zbf}=\Phi(\Gammabf_\Zbf) /\E\Phi(\Gammabf_\Zbf)$, which has at most $N$ atoms.
+Thus, the proof is concluded.
+
+\subsection{Proof of Proposition~\ref{prop:discret3}}
+The next lemma can be interpreted in the following way. If a discrete random vector generates a D-norm, then it admits a discrete counterpart which can be any other discrete distribution with modified atoms: it is also a generator of the concerned D-norm.
+
+\begin{lemma}\label{prop:discrete_weighted_to_uniform}
+  Let $\Gbf \triangleleft \norm{D}{\cdot}$ where $\Gbf\in [0,\infty)^d
+  $ is discrete, that is $ \Gbf \sim \mu_{\Gbf}$ where
+  \begin{equation}
+    \mu_{\Gbf} = \sum_{i \in [N]}p_i\delta_{\gamma^{(i)}}.
+  \end{equation}
+  Consider a new discrete probability measure with positive weights $(q_i)_{i\in [N]}$ and a new random variable $\widetilde \Gbf \sim \mu_{\widetilde \Gbf}$, where
+  \begin{equation}
+    \mu_{\widetilde \Gbf} := \sum_{i \in [N]}q_i\delta_{\widetilde \gamma^{(i)}}, 
+  \end{equation}
+  with $ \widetilde \gamma^{(i)} = \frac{p_i}{q_i} \gamma^{(i)}$, $i\in[N]$. Then, $\widetilde \Gbf$ is a valid generator and $\widetilde \Gbf \triangleleft \norm{D}{\cdot}$.
+\end{lemma}
+
+\begin{proof}
+  By definition of the D-norm, one has $\forall \xbf\in\R^{N}$:
+  \begin{align*}
+    \norm{D}{\xbf} &= \E_{\Gammabf}\left[\max_{j\in [{N}]}\left\{|x_j| \Gammabf_j\right\}\right]  \\
+    &= \sum_{i\in [N]} p_i\max_{j\in [{N}]}\left\{|x_j| \gamma_j^{(i)}\right\}\\
+    &= \sum_{i \in [N]} q_i\max_{j\in [{N}]}\left\{|x_j|\widetilde \gamma_j^{(i)}\right\}
+    = \E_{\widetilde\Gammabf}\left[\max_{j\in [{N}]}\left\{|x_j|\widetilde \Gammabf_j\right\}\right].
+  \end{align*}
+  Since $\E_{\widetilde\Gammabf}\left[\widetilde\Gammabf\right]=\E_{\Gammabf}\left[\Gammabf\right] = \ones$  and  $\widetilde \Gbf \in [0,\infty)^d$,  $\widetilde\Gammabf$ is a valid generator.
+\end{proof}
+In particular, it is possible to choose uniform weights, $q_i = 1 / N$, $i\in[N]$.
+In other words, if a D-norm admits a generator which admits a finite number of values, it also admits a generator with the same number of finite values, with uniform probability.
+This result is important as it means that the class of generators of D-norms which take a finite number of values and with uniform weights is as rich as the class of generator which take finite values with arbitrary weights.
+
+\begin{proposition}\label{prop:discrete_spectral_measure_mapping}
+  Consider a generator $\Gbf$ of a D-norm in $\R^d$.
+  Suppose that it is discrete uniform with $N$ atoms $(\gamma^{(i)})_{i\in[N]}$:
+  \begin{equation}
+    \label{eq-unif-disc}
+    \mu_\Gammabf = \frac{1}{N}\sum_{i \in [N]}\delta_{\gamma^{(i)}}.
+  \end{equation}
+Consider morever a random vector $\Zbf\in \R^N$ with \iid unit 
+  Fr\'echet margins: $\Zbf=(Z_1,\dots, Z_N)$.
+Then, there exists a linear mapping $\Phi:\R^N\to\R^d$ such that:    
+  \begin{equation}
+    F_{\Phi(\Zbf)}\in\mda{G_\Gammabf}.
+  \end{equation}
+\end{proposition}
+
+\begin{proof}
+  {Let us first remark that
+  $F_\Zbf\in\mda{G_{\Gammabf_\Zbf}}$ with:
+  \begin{equation*}
+    \mu_{\Gammabf_\Zbf} =\frac{1}{N}\sum_{i\in [N]}\delta_{N\ebf_i},
+  \end{equation*}
+  see Example~\ref{example:independent:margin}. 
+  Consider $\Gammabf\in\R^{N}$ a valid generator of a D-norm with a discrete uniform distribution~\eqref{eq-unif-disc}.
+  There exists $\Phi:\R^N\to\R^d$ a linear function such that $\forall i\in[N]:\;\Phi(N\ebf_i)=\gamma^{(i)}$.
+  Let us note that $\Phi$ is continuous $1-$homogeneous because it is linear.  
+  Moreover, remark that $\forall i\in[N]: \; \gamma^{(i)} \in [0, \infty)^d$ implies $\Phi\left([0, \infty)^N\right) \subset \Phi\left([0, \infty)^d\right)$ and thus $\Phi(\Zbf) \in [0, \infty)^d$.}
+  {Corollary~\ref{corollary:linear_map} ensures that 
+ \begin{equation}
+    F_{\Phi(\Zbf)}\in \mda{G_{\Phi(\Gammabf_\Zbf)/\E(\Phi(\Gammabf_\Zbf))}}=\mda{G_\Gammabf}
+  \end{equation}
+  since, as $\Phi\left(\ei\right) = \gamma^{(i)}$, $\Phi(\Gammabf_\Zbf)$ is equal in distribution to $\Gammabf$ (note that $\E\left[\Phi(\Gammabf_\Zbf)\right] = \ones$). }
+  The result is thus proved.
+\end{proof}
+
+{\begin{remark}
+  This result ensures that, given any random vector of interest $\Xbf$ for which the associated D-norm generator $\Gammabf_\Xbf$ has a uniform distribution with $N$ atoms, one can find a linear map $\Phi$ transforming a noise with unit Fr\'echet margins with at least $N$ atoms to a distribution whose D-norm generator is the desired one. 
+\end{remark}
+
+Lemma \ref{prop:discrete_weighted_to_uniform} and Proposition~\ref{prop:discrete_spectral_measure_mapping} together prove Proposition~\ref{prop:discret3}.\qed}
+
+\subsection{Proof of Theorem~\ref{theorem:main_claim}}
+
+{The following technical lemma will be useful to prove the result:
+\begin{lemma}\label{lemma:max_inequality}
+  $\forall \abf, \bbf, \cbf\in\R^d$:
+  \begin{equation}
+    \left|\max_{i\in[d]}a_ib_i - \max_{i\in[d]} a_ic_i\right|\leq \norm{\infty}{\abf}\max_{i\in[d]}|b_i - c_i|.
+  \end{equation}
+\end{lemma}
+
+\begin{proof}
+  Without loss of generality, suppose that $\max_{i\in[d]}a_ib_i \geq \max_{i\in[d]}a_ic_i$, the argument being symmetric. One has:
+  \begin{align*}
+    \left|\max_{i\in[d]}a_ib_i - \max_{i\in[d]}a_ic_i\right| 
+    &= \max_{i\in[d]}\left\{a_ic_i + a_ib_i - a_ic_i\right\} - \max_{i\in[d]}a_ic_i\\
+    &\leq \max_{i\in[d]}a_ic_i + \max_{i\in[d]}\left\{a_ib_i - a_ic_i\right\} - \max_{i\in[d]}a_ic_i\\
+    &\leq \max_{i\in[d]}|a_i|\max_{i\in[d]}|b_i - c_i|
+\end{align*}
+and the result is proved.
+\end{proof}
+}
+
+{We seek to find a upper bound on:
+\begin{equation}
+  \inf_{\theta \in \Theta}\sup_{x\in (0, \infty)^d}|\ell_{F}(\xbf) - \ell_{G_{\theta, N}}(\xbf)| / \norm{\infty}{\xbf}.
+  \label{eq:obj:maj:error}
+\end{equation}
+In view of the above, and 
+remembering that the stdf of the output of a neural network is discrete (Proposition~\ref{prop:discret2}), our goal is to find the best approximation of the D-norm $\norm{\Gbf}{.}$ with a discretized generator with $N$ atoms;
+we will leverage results from quantization (Section~\ref{subsec:appendix/quantization}). Take $\Gbf$ an arbitrary generator of the D-norm related to $\ell_F$.
+One has:
+\begin{align}\nonumber
+    &\min_{f:\R^d\to\R^d, \#f(\R^d)= N}\left|\norm{\Gammabf}{\xbf} - \norm{f(\Gammabf)}{\xbf}\right|\\ &= \min_{f:\R^d\to\R^d, \#f(\R^d)= N}\left|\E_\Gammabf\left[\max_{i\in[d]}(|x_i|\Gammabf_i) - \max_{i\in[d]}(|x_i|f(\Gammabf_i))\right]\right|,\\
+\label{eq:dnorm_to_quantization}
+  &\leq \min_{f:\R^d\to\R^d, \#f(\R^d)=N}\norm{\infty}{\xbf}\E_\Gammabf\left[\max_{i\in[d]}\left|\Gammabf_i - f(\Gammabf_i)\right|\right]  \\
+    \label{eq:enz_bound}
+    &\leq \norm{\infty}{\xbf}e_{N, \infty}(\Gammabf),
+\end{align}
+from Lemma~\ref{lemma:max_inequality}.
+To bound \eqref{eq:enz_bound}, we use a quantizer which has a constant sup-norm, which existence is guaranteed by (Theorem~\ref{th:normed_generators}):
+\begin{align}
+    \label{eq:Gamma:hypercube}
+\norm{\infty}{\Gbf}=c\quad a.s..
+\end{align}
+Observe that the constant $c$ must be related to the stdf using Definition~\ref{def:Dnorm}:
+$$\ell_F(1)=\Esp{\norm{\infty}{\Gbf}}=c.$$
+Now, we are in a position to derive a bound on $e_{N, \infty}(\Gammabf)$.}
+
+{\begin{definition}
+  For any norm $\norm{}{\cdot}$, let us denote by $\mathcal{B}_{\norm{}{\cdot}}$ the associated unit ball. Besides, let
+  $\mathcal{B}_{\norm{}{\cdot}}^+ = \mathcal{B}_{\norm{}{\cdot}}\cap [0, \infty)^d$ be the part of the unit ball in the positive orthant. 
+\end{definition}
+Owing to \eqref{eq:Gamma:hypercube} and Definition~\ref{def:Dnorm}, 
+$\supp\left(\Gammabf\right) \subset c\cdot  
+[0, 1]^d$. Equation~\eqref{eq:asymptotic_quantification_number} shows that one can get an error bound for \eqref{eq:enz_bound} with rate $N^{-1/d}$.
+  However, it is possible to improve this result by remarking that $\Gammabf$ takes values on the boundary of a hypercube  {(see~\eqref{eq:Gamma:hypercube})}.
+Indeed, now note that:
+\begin{equation}\label{eq:ball_cover}
+  \supp(\Gammabf) \subset c\cdot \mathcal{B}_{\norm{\infty}{\cdot}}^+ \subset \bigcup_{i\in[d]}c\cdot \mathcal{B}_{\norm{\infty}{\cdot}}^+(i),
+\end{equation}
+where, for all $i\in[d]$,
+\begin{equation}
+  \mathcal{B}_{\norm{\infty}{\cdot}}^+(i) = \left\{(x_1, \dots, x_{i - 1}, 1, x_{i + 1}, \dots, x_d): (x_1,\dots, x_{i-1}, x_{i+1}, \dots, x_d)\in[0, 1]^{d - 1}\right\}.
+\end{equation}
+
+\begin{remark}
+  For all $i\in[d]$, $\mathcal{B}_{\norm{\infty}{\cdot}}^+(i)$ is canonically homeomorph to $[0, 1]^{d-1}$ in the topological space $\R^{d - 1}$ endowed with the topology of $\norm{\infty}{\cdot}$.
+\end{remark}
+  Using Lemma~\ref{lemma:union_covering} (inequality~\eqref{eq:quantization_subset} with~\eqref{eq:ball_cover} from first to second term and from second to third and inequality~\eqref{eq:covering_union1} from third to fourth), we get
+\begin{equation}
+   e_{N, \infty}\left(\Gammabf\right) \leq c\cdot e_{N, \infty}\left(\mathcal{B}^{+}_{\norm{\infty}{\cdot}}\right) \leq c\cdot e_{\left\lceil N /d \right\rceil-1, \infty}\left(\mathcal{B}^{+}_{\norm{\infty}{\cdot}}(1)\right) = c\cdot e_{\left\lceil N / d\right\rceil-1, \infty}\left([0, 1]^{d - 1}\right).
+\end{equation}
+Gathering previous arguments, we have proved the following:
+\begin{lemma}
+  Consider $\Gammabf\in\R^d$ a generator of a D-norm such that $\norm{\infty}{\Gammabf} = c$ \as. Then, the following holds true:
+\begin{equation}\label{eq:bound_quantization_1}
+    \forall \xbf\in\R^d:\;\min_{f:\R^d\to\R^d, \# f(\R^d)=N}\left|\norm{\Gammabf}{\xbf} - \norm{f(\Gammabf)}{\xbf}\right|\leq c\cdot \norm{\infty}{\xbf}e_{\left\lceil N / d\right\rceil-1, \infty}\left([0, 1]^{d - 1}\right).
+  \end{equation}
+\end{lemma}
+
+From~\eqref{eq:asymptotic_quantification_number}, we get that:
+\begin{align}
+  e_{\left\lceil N / d\right\rceil-1, \infty}\left([0, 1]^{d - 1}\right) &\stackrel{N\to\infty}{\sim} \left(\left\lceil N / d\right\rceil-1\right)^{-1/(d - 1)}Q_\infty\left([0, 1]^{d - 1}\right)\lambda([0, 1]^{d - 1})^{1/(d - 1)}  \\
+    &\stackrel{N\to\infty}{\sim} d^{1/(d - 1)} N^{-1 / (d - 1)} Q_\infty\left([0, 1]^{d - 1}\right)
+\end{align}
+  which proves~\eqref{eq:stdf_bound}, where $C(d) = c\cdot d^{1 / (d - 1)}Q_\infty\left([0, 1]^{d - 1}\right)$ in $\eqref{eq:eps_equiv}$. The proof of Theorem~\ref{theorem:main_claim} is thus complete. \qed
+  
+  
+  Observe that the quantization upper bound~\eqref{eq:enz_bound} is a bit rough since the right-hand side of~\eqref{eq:dnorm_to_quantization} refers to the $L_1$-quantization that we bound using $L_\infty$-quantization. One could use $L_1$-quantization estimates but they would depend on the distribution of $\Gbf$ and we prefer to provide worst-case estimates.
+  Instead of using the $L_\infty$ and using $L_1$ quantization on \eqref{eq:dnorm_to_quantization}, \parencite[Th. 6.2.]{graf_2000} gives that the first order error of the error is proportional to the $L_{{(d - 1)}/{d}}$ norm of the density of the generator on the boundaries of $\mathcal{B}_{\norm{\infty}{\cdot}}^+(i)$ times $N^{- 1 /(d - 1)}$.
+  In particular, if the generator $\Gammabf$ has a null density with respect to the Lebesgue measure (\eg if the distribution is discrete), the multiplicative factor of the $N^{ -1 / (d - 1) }$ term is null and the convergence of the bound can be quicker than $N^{ -1/ (d-1 ) }.$ 
+  }
+    
+    \section{Supplementary for experiments}
+    \label{section:Supplementary for experiments}
+    \subsection{Experiments on Hüsler-Reiß and Gaussian models}
+    \label{subsec:detais-HR&G}
+ 
+    \paragraph*{Experimental setup.}
+    We consider dimensions $d\in\{2,5,10,20,50\}$. In the
+    Gaussian copula model, the equicorrelation parameter is fixed at $\rho=0.5$. In the
+    Hüsler-Reiß case, the equi-\,$\lambda$ model is adopted with $\lambda=1.0$ (\ie $\lambda_{ij}= 1$ for $i\ne j$).
+    In both datasets, the margins are Pareto distributed with tail index $\alpha\in\{1.5,2.0,2.5\}$ (implemented by inverse-cdf transforms after simulating the copula).
+    For each pair $(d,\alpha)$ and dataset type, we generate $10{,}000$ training and $2{,}000$ validation points.
+{
+    Results are provided in Table~\ref{table:metrics:RH&Gaussian} of the main paper and Figures~\ref{fig:metrics_swd_gaussian}, \ref{fig:metrics_ake_gaussian},  \ref{fig:metrics_swd_HR} and \ref{fig:metrics_ake_HR}.
+}
+    
+    \begin{figure}[p]
+      \centering
+    %sousfig a)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/SWD_alpha=1.5_gaussian.png}
+        \caption{$\alpha=1.5$}
+      \end{subfigure}
+    \vspace{0.2cm}
+    
+    %sousfig b)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/SWD_alpha=2.0_gaussian.png}
+        \caption{$\alpha=2.0$}
+      \end{subfigure}
+    \vspace{0.2cm}
+    
+    %sousfig c)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/SWD_alpha=2.5_gaussian.png}
+        \caption{$\alpha=2.5$}
+      \end{subfigure}
+    
+      \caption{Illustration in a $d$-dimensional setting on simulated data of size $\ndata=10,000$ from a Gaussian copula and Pareto margins, $d\in\{2,5,10,20,50\}.$ {Results obtained with the SWD metric.}
+      See Figure~\ref{fig:synthetic_metric_alpha=1.5} for further details.
+      }
+      \label{fig:metrics_swd_gaussian}
+    \end{figure}
+    
+   \begin{figure}[p]
+      \centering
+    %sousfig a)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/AKE_alpha=1.5_gaussian.png}
+        \caption{$\alpha=1.5$}
+      \end{subfigure}
+    \vspace{0.2cm}
+    
+    %sousfig b)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/AKE_alpha=2.0_gaussian.png}
+        \caption{$\alpha=2.0$}
+      \end{subfigure}
+    \vspace{0.2cm}
+    
+    %sousfig c)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/AKE_alpha=2.5_gaussian.png}
+        \caption{$\alpha=2.5$}
+      \end{subfigure}
+    
+      \caption{Illustration in a $d$-dimensional setting on simulated data of size $\ndata=10,000$ from a Gaussian copula and Pareto margins, $d\in\{2,5,10,20,50\}.$ {Results obtained with the AKE metric.}
+      See Figure~\ref{fig:synthetic_metric_alpha=1.5} for further details.
+      }
+      \label{fig:metrics_ake_gaussian}
+    \end{figure} 
+
+        \begin{figure}[p]
+      \centering
+    %sousfig a)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/SWD_alpha=1.5_husler_reiss.png}
+        \caption{$\alpha=1.5$}
+      \end{subfigure}
+    \vspace{0.2cm}
+    
+    %sousfig b)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/SWD_alpha=2.0_husler_reiss.png}
+        \caption{$\alpha=2.0$}
+      \end{subfigure}
+    \vspace{0.2cm}
+    
+    %sousfig c)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/SWD_alpha=2.5_husler_reiss.png}
+        \caption{$\alpha=2.5$}
+      \end{subfigure}
+    
+      \caption{Illustration in a $d$-dimensional setting on simulated data of size $\ndata=10,000$ from a Hüsler-Reiß copula and Pareto margins, $d\in\{2,5,10,20,50\}.$ {Results obtained with the SWD metric.}
+      See Figure~\ref{fig:synthetic_metric_alpha=1.5} for further details.
+      }
+      \label{fig:metrics_swd_HR}
+    \end{figure}
+    
+    \begin{figure}[p]
+      \centering
+    %sousfig a)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/AKE_alpha=1.5_husler_reiss.png}
+        \caption{$\alpha=1.5$}
+      \end{subfigure}
+    \vspace{0.2cm}
+    
+    %sousfig b)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/AKE_alpha=2.0_husler_reiss.png}
+        \caption{$\alpha=2.0$}
+      \end{subfigure}
+    \vspace{0.2cm}
+    
+    %sousfig c)
+      \begin{subfigure}[b]{0.9\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/htgan/synthetic/metrics_new/AKE_alpha=2.5_husler_reiss.png}
+        \caption{$\alpha=2.5$}
+      \end{subfigure}
+    
+      \caption{Illustration in a $d$-dimensional setting on simulated data of size $\ndata=10,000$ from a Hüsler-Reiß copula and Pareto margins, $d\in\{2,5,10,20,50\}.$ {Results obtained with the AKE metric.}
+      See Figure~\ref{fig:synthetic_metric_alpha=1.5} for further details.
+      }
+      \label{fig:metrics_ake_HR}
+    \end{figure}
+
+    \subsection{Additional plots for experiments on Real data}
+
+
+    We provide additional illustrations for assessing the performance of HTGAN for real data, on the Financials dataset in Figure~\ref{fig:real_data_illustration}.
+    Real vs generated data are plotted with: (i) histograms of marginal densities for four tickers, (ii) scatter plots for two tickers and (iii) histograms of angles of large data points after projection for two tickers.
+    For scatter plots and angles, two tickers are selected such that they exhibit quite different  values of Kendall's $\tau$, chosen on the relevant heatmap in Figure~\ref{fig:heatmaps}.
+    The selected securities are: Ameriprise Financial (AMP), Franklin Ressources (BEN), BNY Mellon (BK) and BlackRock (BLK).
+    This contrast in dependence is reflected in the corresponding scatter plots and angular distributions.
+    These illustrations highlight HTGAN’s capacity to capture various and complex asymptotic dependence structures - even if not perfectly - despite the challenges posed by the high-dimensional setting and the limited sample size.
+
+
+   \begin{figure}[p] % put on its own page
+    \centering
+    % row 1
+    \begin{subfigure}{0.44\textwidth}
+      \includegraphics[width=\linewidth]{figures/htgan/sp500/figures_more/marginal_hist_dim0.pdf}
+      \caption{}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.44\textwidth}
+      \includegraphics[width=\linewidth]{figures/htgan/sp500/figures_more/marginal_hist_dim1.pdf}
+      \caption{}
+    \end{subfigure}
+    
+    \vspace{0.6em}
+    
+    % row 2
+    \begin{subfigure}{0.44\textwidth}
+      \includegraphics[width=\linewidth]{figures/htgan/sp500/figures_more/marginal_hist_dim2.pdf}
+      \caption{}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.44\textwidth}
+      \includegraphics[width=\linewidth]{figures/htgan/sp500/figures_more/marginal_hist_dim3.pdf}
+      \caption{}
+    \end{subfigure}
+    
+    \vspace{0.6em}
+    
+    % row 3
+    \begin{subfigure}{0.44\textwidth}
+         \includegraphics[width=\linewidth]{figures/htgan/sp500/figures_more/real_vs_fake_scatter_dim0_1.pdf}
+      \caption{}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.44\textwidth}
+        \includegraphics[width=\linewidth]{figures/htgan/sp500/figures_more/real_vs_fake_scatter_dim2_3.pdf}
+      \caption{}
+    \end{subfigure}
+    
+    \vspace{0.6em}
+    
+    % row 4
+    \begin{subfigure}{0.44\textwidth}
+      \includegraphics[width=\linewidth]{figures/htgan/sp500/figures_more/theta_hist_p80.pdf}
+      \caption{}
+    \end{subfigure}\hfill
+    \begin{subfigure}{0.44\textwidth}
+      \includegraphics[width=\linewidth]{figures/htgan/sp500/figures_more/theta_hist_p90.pdf}
+      \caption{}
+    \end{subfigure}
+    
+    \caption{(a)-(d): histograms of real vs {synthetic} marginals across dimensions one to four. (e)-(f): Scatter plot AMF vs BEN and BK vs BLK tickers. (g)-(h): Histogram of $\theta$ after selecting largest values, at level $80\%$ and $90\%$.}
+    \label{fig:real_data_illustration}
+    \end{figure} 
+    
+ 
 

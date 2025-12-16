@@ -129,3 +129,20 @@
 
 % IID sampling notation
 \newcommand{\simiid}{\overset{\mathrm{iid}}{\sim}}
+
+% Additional macros from HTGAN/GENOS papers (using providecommand to avoid conflicts)
+\providecommand\rvs{r.v.s\;}
+\providecommand\Prob[1]{\P\left(#1\right)}
+\providecommand\Esp[1]{\E\left[#1\right]}
+\providecommand\NN{\mbox{NN}}
+\providecommand\sumi{\sum_{i\in[d]}}
+\providecommand{\Thbb}{\boldsymbol{\Theta}}
+\providecommand\maxi{\max_{i\in[d]}}
+\providecommand\mini[1]{\min\left\{#1\right\}}
+\providecommand\supp{\mbox{supp}}
+
+% JMLR compatibility
+\providecommand{\acks}[1]{\paragraph{Acknowledgements.} #1}
+
+% Float barrier
+\usepackage{placeins}

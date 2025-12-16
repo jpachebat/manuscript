@@ -1,5 +1,8 @@
 % PhD Manuscript Main Document
-\documentclass[12pt,a4paper,oneside]{book}
+\documentclass[a4paper,oneside]{book}
+
+% Font size (11.5pt)
+\usepackage[fontsize=11.5pt]{fontsize}
 
 % ============================================
 % PACKAGES
@@ -67,6 +70,8 @@
 \usepackage{nicefrac}  % For \nicefrac
 \usepackage{mathrsfs}  % For \mathscr
 \usepackage{pifont}  % For various symbols
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{placeins}
 
 % Load custom macros
 \input{macros/def}
@@ -138,7 +143,8 @@
 % CHAPTER 1: Introduction (English)
 % ============================================
 \selectlanguage{english}
-\chapter{Introduction}
+\chapter*{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
 \label{chap:introduction}
 \input{chapters/01_introduction}
 
@@ -146,8 +152,10 @@
 % CHAPTER 2: Introduction (French)
 % ============================================
 \selectlanguage{french}
-\chapter{Introduction (Version française)}
+\chapter*{Introduction (Version française)}
+\addcontentsline{toc}{chapter}{Introduction (Version française)}
 \label{chap:introduction_fr}
+\input{chapters/02_introduction_fr}
 
 % ============================================
 % CHAPTER 3: Heavy-Tailed GANs (HTGAN)
@@ -155,18 +163,21 @@
 \selectlanguage{english}
 \chapter{Heavy-Tailed GANs for Extreme Value Generation}
 \label{chap:htgan}
+\input{chapters/03_htgan}
 
 % ============================================
-% CHAPTER 3: Generative Neural Order Statistics (GENOS)
+% CHAPTER 4: Generative Neural Order Statistics (GENOS)
 % ============================================
 \chapter{Generative Neural Order Statistics}
 \label{chap:genos}
+\input{chapters/04_genos}
 
 % ============================================
-% CHAPTER 4: Diffusion Fine-Tuning (FTDiffusion)
+% CHAPTER 5: Diffusion Fine-Tuning (FTDiffusion)
 % ============================================
 \chapter{Gradient-Free Fine-Tuning of Diffusion Models}
 \label{chap:ftdiffusion}
+\input{chapters/05_ftdiffusion}
 
 % Back matter
 \backmatter
