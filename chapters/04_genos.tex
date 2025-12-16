@@ -352,7 +352,7 @@ Generative Adversarial Networks, as introduced by \citet{goodfellow2014}, are tr
 Namely, both networks optimize the common objective:
 \begin{equation}
   \min_{\Gcal} \max_{\Dcal} V(\Dcal, \Gcal)\quad\text{where}\quad  V(\Dcal, \Gcal)=\mathbb{E}_{\Xbf \sim p_{\text {data }}}\left[\log \Dcal(\Xbf)\right]+\mathbb{E}_{\Zbf \sim p_{\Zbf}}\left[\log (1-\Dcal(\Gcal(\Zbf)))\right],
-  \label{eq:GAN_objective}
+  \label{eq:GAN_objective_genos}
 \end{equation} 
 
 where $p_{data}$ is the underlying distribution of the data and $p_\Zbf$ is the distribution of the latent variable, a distribution that is chosen to be easy to sample from, typically Gaussian or Uniform.

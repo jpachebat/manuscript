@@ -38,7 +38,8 @@
 \addbibresource{bibliography/references.bib}
 
 % Hyperlinks and references
-\usepackage[colorlinks=true,linkcolor=blue!70!black,citecolor=blue!70!black,urlcolor=blue!70!black]{hyperref}
+\usepackage[colorlinks=true,linkcolor=blue!70!black,citecolor=blue!70!black,urlcolor=blue!70!black,pdfencoding=auto,unicode]{hyperref}
+\usepackage{bookmark}  % Better bookmark handling for XeLaTeX
 \usepackage{cleveref}
 
 % Line spacing
@@ -71,6 +72,7 @@
 \usepackage{mathrsfs}  % For \mathscr
 \usepackage{pifont}  % For various symbols
 \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{algpseudocode}  % For algorithmic environment
 \usepackage{placeins}
 
 % Load custom macros
