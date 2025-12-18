@@ -429,17 +429,17 @@ We sample \textit{large} order-statistics:
 \end{equation}
 
 \paragraph{Normalization scheme.}
-Per-coordinate min–max normalization, while common in GANs, applies different affine maps to each coordinate; real data then leave the sorted manifold, and the generator has no incentive to produce ordered outputs.
-To respect the combinatorial structure of order statistics during learning, we avoid per-coordinate normalizations (e.g., min–max applied separately to each dimension), which apply different affine maps to each coordinate and can flip pairwise differences within a sample. Instead, we use a single \emph{global} affine transform applied jointly to all coordinates: we subtract the global mean computed over the entire training set and rescale by a positive factor $s>0$,
+Per-coordinate min--max normalization, while common in GANs, applies different affine maps to each coordinate; real data then leave the sorted manifold, and the generator has no incentive to produce ordered outputs.
+To respect the combinatorial structure of order statistics during learning, we avoid per-coordinate normalizations (e.g., min--max applied separately to each dimension), which apply different affine maps to each coordinate and can flip pairwise differences within a sample. Instead, we use a single \emph{global} affine transform applied jointly to all coordinates: we subtract the global mean computed over the entire training set and rescale by a positive factor $s>0$,
 \begin{equation}
   \tilde\xbf \;=\; s\,\bigl(\xbf - \bar x\bigr),\qquad \bar x \eqdef \frac{1}{Nd}\sum_{n=1}^N\sum_{j=1}^d x^{(n)}_j.
 \end{equation}
-This mean–scale normalization stabilizes optimization \emph{and} exactly preserves the ordering constraint: for any sample \(\xbf\) and indices $i<j$, $\operatorname{sign}(\tilde x_i-\tilde x_j)=\operatorname{sign}(x_i-x_j)$.
+This mean--scale normalization stabilizes optimization \emph{and} exactly preserves the ordering constraint: for any sample \(\xbf\) and indices $i<j$, $\operatorname{sign}(\tilde x_i-\tilde x_j)=\operatorname{sign}(x_i-x_j)$.
 The scale $s$ is a hyperparameter chosen for numerical convenience and visualization; adding a constant offset after training can further improve plot readability without affecting sortedness.
 We apply the same transform to real and generated data for a fair comparison.
 An illustration of the normalization scheme is provided in \Cref{fig:orderstats_2d}.
-Empirically, the min–max model yields visually plausible marginals, yet many generated points cross the diagonal, signaling broken sortedness.
-With mean–scale normalization, generated samples concentrate strictly below the diagonal. Structural metrics corroborate this observation: the proportion of sorted samples is close to $1.0$. See \Cref{fig:orderstats_2d} for a side-by-side comparison.
+Empirically, the min--max model yields visually plausible marginals, yet many generated points cross the diagonal, signaling broken sortedness.
+With mean--scale normalization, generated samples concentrate strictly below the diagonal. Structural metrics corroborate this observation: the proportion of sorted samples is close to $1.0$. See \Cref{fig:orderstats_2d} for a side-by-side comparison.
 
 \paragraph{Ablation study:  $d=2$.}
 This case targets the top two order statistics $(X_{N:N}, X_{N-1:N})$ with $N{=}500$.
@@ -458,7 +458,7 @@ An illustration of the generated data cloud is provided in \Cref{fig:orderstats_
   \begin{subfigure}[b]{0.48\textwidth}
     \centering
     \includegraphics[width=\textwidth]{figures/genos/real_2d_meanscale_dim002.png}
-    \caption{Real data after mean–scale normalization. \texttt{scale=75} and \texttt{n\_samples=1,000}.}
+    \caption{Real data after mean--scale normalization. \texttt{scale=75} and \texttt{n\_samples=1,000}.}
     \label{fig:orderstats_2d_meanscale}
   \end{subfigure}
   
@@ -470,7 +470,7 @@ An illustration of the generated data cloud is provided in \Cref{fig:orderstats_
     \label{fig:orderstats_2d_overlay}
   \end{subfigure}
 
-  \caption{Comparison of real and generated 2D order statistics under different normalization schemes, with an additional overlay view. The red dashed lines indicate $x=y$; the mean–scale normalization  preserves the sorted structure (no line crossing), while min–max normalization does not.}
+  \caption{Comparison of real and generated 2D order statistics under different normalization schemes, with an additional overlay view. The red dashed lines indicate $x=y$; the mean--scale normalization  preserves the sorted structure (no line crossing), while min--max normalization does not.}
   \label{fig:orderstats_2d}
 \end{figure}
 
@@ -523,7 +523,7 @@ Best values are in bold.
 The results of \Cref{tab:metrics_replication_table} provides us the following insights on the performance of models:
 The WGAN-GP underperforms by a wide margin compared to the two other models. 
 On Wasserstein-based metrics, marginal (W1D) and multivariate (SWD), the WGAN outperforms the GAN, except in the vanilla 2 dimensional case.
-This is expected, as the minimization of the Wasserstein distance is embedded in the model’s loss.
+This is expected, as the minimization of the Wasserstein distance is embedded in the model's loss.
 Looking at classical metrics of dependence, namely Spearman and AKE, the GAN seems to outperform the WGAN, except for $d=3$ for the Spearman metric and $d=50$ for the AKE metric.
 However, looking at the specifically designed Sortedness and Softsortedness metrics, GAN performs better in low dimensional settings $d\in\left\{2, 3, 5, 10\right\}$, but WGAN is better for higher dimensional settings $d\in \left\{20, 50\right\}$.
 Furthermost, for higher values of $d$ ($d \in \left\{20, 50\right\}$), performances of GAN is especially poor (values of Sortedness of $4.7\%$ and $0\%$ respectively), whereas values for WGAN stay higher ($51.9\%$ and $50.7\%$ respectively).
@@ -614,23 +614,23 @@ Overall, this study shows that adding a Softsortedness regularization term to WG
 
 \section{Conclusion}
 This work develops a route to generative modeling of ordered statistics.
-Starting from classical probability identities, we showed how two representations of order statistics (Schucany’s top–down recursion and Sukhatme’s exponential spacings) can be leveraged to design neural samplers with explicit capacity/error tradeoffs.
-Concentrating approximation into one scalar inverse–cdf block (with Sukhatme's representation) yields a parameter growth of order \(\mathcal O(\varepsilon^{-2}\log(\varepsilon^{-1}))\) and a coordinate‑wise expected \(L_1\) error that grows only logarithmically with dimension through a harmonic factor.
+Starting from classical probability identities, we showed how two representations of order statistics (Schucany's top--down recursion and Sukhatme's exponential spacings) can be leveraged to design neural samplers with explicit capacity/error tradeoffs.
+Concentrating approximation into one scalar inverse--cdf block (with Sukhatme's representation) yields a parameter growth of order \(\mathcal O(\varepsilon^{-2}\log(\varepsilon^{-1}))\) and a coordinate-wise expected \(L_1\) error that grows only logarithmically with dimension through a harmonic factor.
 The theory clarifies what must be learned (and what does not) when the target distribution lives on the ordered manifold.
 
 On the practical side, we argued that respecting the geometry of order statistics during training is as important as the network architecture.
-A simple global mean–scale normalization preserves pairwise order within each sample and proved crucial to maintain the OS structure under adversarial training.
-Experiments on synthetic OS benchmarks across dimensions demonstrate that standard GAN/WGAN baselines equipped with this normalization achieve competitive performance on classical metrics while improving sortedness; an additional soft order‑violation penalty further tightens structure‑aware metrics with small impact on Wasserstein distances.
+A simple global mean--scale normalization preserves pairwise order within each sample and proved crucial to maintain the OS structure under adversarial training.
+Experiments on synthetic OS benchmarks across dimensions demonstrate that standard GAN/WGAN baselines equipped with this normalization achieve competitive performance on classical metrics while improving sortedness; an additional soft order-violation penalty further tightens structure-aware metrics with small impact on Wasserstein distances.
 
 There are several avenues for future work.
 First, moving from OS to induced order statistics (IOS) is essential for financial applications in which assets are ranked by an impact factor and paired with returns.
-This calls for learning generative IOS models with the same geometry‑preserving principles.
+This calls for learning generative IOS models with the same geometry-preserving principles.
 Second, a systematic, controlled empirical study that instantiates architectures mirroring the Schucany and Sukhatme constructions would enable direct validation of the predicted scalings (\eg, \(\varepsilon\log N\) error growth and \(\varepsilon^{-2}\log(\varepsilon^{-1})\) parameter counts).
 While feasible, such sweeps are tedious and we leave them to future work.
-Finally, applying these ideas to real impact‑investing datasets will require robust preprocessing, careful evaluation protocols, and domain‑specific stress tests in which IOS simulators can meaningfully inform portfolio construction.
+Finally, applying these ideas to real impact-investing datasets will require robust preprocessing, careful evaluation protocols, and domain-specific stress tests in which IOS simulators can meaningfully inform portfolio construction.
 
-Taken together, our analysis and experiments show that a small amount of structure—codified by probabilistic representations and simple normalization—goes a long way for learning on the ordered manifold.
-We hope this bridges classical order‑statistics theory and modern deep generative modeling, and serves as a foundation for IOS‑aware simulators in sustainable finance.
+Taken together, our analysis and experiments show that a small amount of structure---codified by probabilistic representations and simple normalization---goes a long way for learning on the ordered manifold.
+We hope this bridges classical order-statistics theory and modern deep generative modeling, and serves as a foundation for IOS-aware simulators in sustainable finance.
 
 
 
@@ -726,7 +726,7 @@ in practice, it is not reasonably feasible to perform computation of \eqref{eq:o
 
 
 \paragraph{Order statistics as a Markov chain (Schucany form).}
-Order statistics admit a Markovian structure \parencite[Chapter 1, Section 5]{david2004}. For the uniform case, the chain is especially simple in the \emph{top–down} direction. Conditionally on $U_{m+1:N}=x$, the distribution of $U_{m:N}$ on $[0,x]$ is the maximum of $m$ i.i.d. uniforms on $[0,x]$, hence
+Order statistics admit a Markovian structure \parencite[Chapter 1, Section 5]{david2004}. For the uniform case, the chain is especially simple in the \emph{top--down} direction. Conditionally on $U_{m+1:N}=x$, the distribution of $U_{m:N}$ on $[0,x]$ is the maximum of $m$ i.i.d. uniforms on $[0,x]$, hence
 \begin{equation}
   \forall y\in[0,x]:\quad F_{U_{m:N}\mid U_{m+1:N}=x}(y)\;=\;\Bigl(\tfrac{y}{x}\Bigr)^{m},\qquad m=1,\dots,N-1.
   \label{eq:uniform_markov_cdf}
@@ -1292,7 +1292,7 @@ Given a data distribution $p_{\text{data}}$ and a latent prior $p_{\Zbf}$, the v
 At equilibrium with idealized capacity, the generator recovers $p_{\text{data}}$ and the discriminator outputs $1/2$ \parencite{goodfellow2014}. Training instabilities and mode collapse are common; Section~\Cref{sec:hyperparameters} records our simple, robust choices.
 
 \paragraph{Wasserstein GAN (WGAN).}
-The WGAN replaces the Jensen–Shannon divergence implicit in the vanilla objective with the Wasserstein-1 distance. Using the Kantorovich–Rubinstein duality, the critic $\Dcal$ is constrained to be 1-Lipschitz and optimized via
+The WGAN replaces the Jensen--Shannon divergence implicit in the vanilla objective with the Wasserstein-1 distance. Using the Kantorovich--Rubinstein duality, the critic $\Dcal$ is constrained to be 1-Lipschitz and optimized via
 \begin{equation}
   \max_{\lVert \Dcal \rVert_{\text{Lip}}\le 1}\;\E_{\Xbf\sim p_{\text{data}}}[\Dcal(\Xbf)]-\E_{\Zbf\sim p_{\Zbf}}[\Dcal(\Gcal(\Zbf))],\quad
   \min_{\Gcal}\; -\E_{\Zbf\sim p_{\Zbf}}[\Dcal(\Gcal(\Zbf))].
