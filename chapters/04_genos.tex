@@ -15,14 +15,14 @@ This chapter develops the theory and algorithms for generating order statistics 
 Sustainable finance refers to the process of taking environmental, social and governance (ESG) considerations into account when making investment decisions in the financial sector, leading to more long-term investments in sustainable economic activities and projects, as defined by the \citet{europeancommission2024}.
 Within sustainable finance, a particular quantitative framework, impact investing, is broadly defined as investments that consider not only financial objectives but also other goals such as supporting certain social priorities and agendas \parencite{lo2021}.
 Impact investing seeks to optimize both financial objectives and metrics that quantify the compliance level of assets with sustainable goals.
-For example, ratings on \newjp{ESG} factors provide information about the sustainability performance of a company or a financial instrument, by assessing its exposure to sustainability risks and/or its impact on people and the environment \parencite{europeancommission2024a}.
+For example, ratings on ESG factors provide information about the sustainability performance of a company or a financial instrument, by assessing its exposure to sustainability risks and/or its impact on people and the environment \parencite{europeancommission2024a}.
 %\emmi{pour l'investissement durable, tu peux t'inspirer du chap 3 du livre de  Roncalli "Handbook of Sustainable Finance" \url{http://www.thierry-roncalli.com/SustainableFinance.html}, cela parle d'ESG, de gestion de portefeuilles, etc}
 \paragraph{Impact investing, order statistics and induced order statistics.}
 Recent developments in Mathematical finance and economics have tackled the challenging task of translating sustainable investing into a mathematical framework.
-Among those, the work in \parencite{lo2021} introduces a general framework for quantifying \newjp{the} impact of impact investing.
+Among those, the work in \parencite{lo2021} introduces a general framework for quantifying the impact of impact investing.
 Namely, authors propose to formalize impact investing as the sorting and selection of an investment universe of $N$ securities based on an \textit{impact factor}, typically the ESG score, $\Xbf = (X_1, \dots, X_N)^T$ and a \textit{performance metric}, typically the return associated with an asset, $\Thetabf = (\Theta_1, \dots, \Theta_N)$.
 In this framework, $\Xbf$ and $\Thetabf$ are time series evolving in time.
-It is a common assumption to suppose that both the performance metric and the impact factor are identically distributed throughout time \newjp{and we will hold this assumption in this work.}
+It is a common assumption to suppose that both the performance metric and the impact factor are identically distributed throughout time and we will hold this assumption in this work.
 In this case, the training data consists of the sorted realizations of the time series.
 Suppose that $\Xbf$ varies with time, denoted $\Xbf_t$.
 Under the assumption of identical distributions over time, we drop the time index and treat each observation as a vector.
@@ -30,14 +30,14 @@ Typically, we are interested in time scales where there are significant changes 
 This excludes high-frequency trading.
 In this framework, we rank assets by the impact factor and study the associated returns ordered accordingly.
 This operation fits into the framework of \textit{order statistics} and \textit{induced order statistics}.
-Formally: suppose that we have a dataset consisting of \newjp{\iid} realizations of the investment universe $\left\{\left(X_1, \Theta_1\right), \dots, \left(X_N, \Theta_N\right)\right\}$, the order statistics of the impact factor $\Xbf$ is defined as a random permutation $\sigma$ of its elements satisfying: 
+Formally: suppose that we have a dataset consisting of \iid realizations of the investment universe $\left\{\left(X_1, \Theta_1\right), \dots, \left(X_N, \Theta_N\right)\right\}$, the order statistics of the impact factor $\Xbf$ is defined as a random permutation $\sigma$ of its elements satisfying: 
 
 \begin{equation}
   X_{\sigma(1)} \leq \dots \leq X_{\sigma(N)}. 
   \label{eq:order_stats}
 \end{equation}
 
-\newjp{Recall that throughout the paper, we suppose that the realizations $X_1,\dots, X_N$ are \iid}.
+Recall that throughout the paper, we suppose that the realizations $X_1,\dots, X_N$ are \iid.
 Note that if the distribution of $\Xbf$ is continuous, such a permutation is unique \textit{almost surely}.
 Also note that the permutation is random and that each instance depends on the realization $X_1, \dots, X_N$.
 We therefore denote, for any $i\in[N]$, $X_{i:N} = X_{\sigma(i)}$, the \textit{$i^{th}$ order statistic}.
@@ -48,7 +48,7 @@ The associated \textit{induced order statistics} (IOS) are defined as:
   \forall i\in [N]:\;\Theta_{[i:N]} = \Theta_{\sigma(i)}.
 \end{equation}
 
-An \textit{impact portfolio strategy}, as defined in \parencite{lo2021}, is a strategy that consider\newjp{s} both the performance metric $\Thetabf$ and the impact factor $\Xbf$.
+An \textit{impact portfolio strategy}, as defined in \parencite{lo2021}, is a strategy that considers both the performance metric $\Thetabf$ and the impact factor $\Xbf$.
 Typically, an impact driven investor is willing to invest in stocks that have high scores for the impact factor (high values of $\Xbf$) but also have good values for the performance metric $\Theta$.
 In this view, it is crucial to perform accurate estimation of the joint distribution of order statistics and the associated induced order statistics counterparts.
 Modeling order statistics and induced order statistics is an rich, ongoing research field.
@@ -70,7 +70,7 @@ To cope with this difficulty, a line of research has focused on augmenting the d
 Historically, for financial applications, approaches for data augmentation include bootstrap methods, Monte Carlo simulations and parametric models. 
 In portfolio management, Monte Carlo methods are widely used by practitioners \parencite{glasserman2013}.
 Generally speaking, the simulation approach for data augmentation can be framed as mapping a source of randomness to the data of interest.
-In our impact investing framework, the problem is defined as finding a \newjp{generator} function $\mathcal{G}$ associated to a source of randomness $\Zbf$ such that: 
+In our impact investing framework, the problem is defined as finding a generator function $\mathcal{G}$ associated to a source of randomness $\Zbf$ such that: 
 
 \begin{equation}  
   \mathcal{G}\left(\Zbf\right) \stackrel{d}{=} \left(\left(X_{1:N}, \Theta_{[1:N]}\right), \dots,\left(X_{N:N}, \Theta_{[N:N]}\right) \right)
@@ -78,7 +78,7 @@ In our impact investing framework, the problem is defined as finding a \newjp{ge
 \end{equation}
 
 where $\stackrel{d}{=}$ stands for equality in distribution.
-The problem of the existence of \newjp{tractable} models achieving \newjp{exactly} \eqref{eq:gen_learning_pb} is an open question. 
+The problem of the existence of tractable models achieving exactly \eqref{eq:gen_learning_pb} is an open question. 
 \parencite[Theorem 1]{lo2021} provides a representation theorem that maps a source of randomness to the data distribution.   
 
 \paragraph{Problem statement.}
@@ -253,7 +253,7 @@ Thus, \eqref{eq:sampling_schucany} can be rewritten as
 
 With this procedure, we obtain the following result:
 \begin{theorem}
-  Let $\ve > 0$. There exists a family of \newjp{ReLU Neural Networks} $G_{N - r:N}^{NN}$ for $1 \leq r \leq N$ such that, using the sampling procedure of \Cref{alg:sampling_schucany} and setting
+  Let $\ve > 0$. There exists a family of ReLU Neural Networks $G_{N - r:N}^{NN}$ for $1 \leq r \leq N$ such that, using the sampling procedure of \Cref{alg:sampling_schucany} and setting
   \begin{equation}
     \Delta V_r = |\hat U_{N - r:N} - U_{N - r:N}|,
   \end{equation}
@@ -288,9 +288,9 @@ Next, we consider the Sukhatme representation for generating order statistics. L
 
 \begin{theorem}
   \label{prop:sampling_sukhatme}
-  With the sampling strategy of \Cref{alg:sampling_sukhatme}, there exist \newjp{ReLU Neural Networks} $F_{NN}$ and $F_{NN}^{-1}$ such that the error in approximating the uniform order statistics satisfies, in expectation,
+  With the sampling strategy of \Cref{alg:sampling_sukhatme}, there exist ReLU Neural Networks $F_{NN}$ and $F_{NN}^{-1}$ such that the error in approximating the uniform order statistics satisfies, in expectation,
   \begin{equation}
-    \E|U_{r:N} - \hat U_{r:N}| \leq \ve\left[1 +  2\sum_{i=1}^r \frac{1}{N - \newjp{i} + 1}\right],
+    \E|U_{r:N} - \hat U_{r:N}| \leq \ve\left[1 +  2\sum_{i=1}^r \frac{1}{N - i + 1}\right],
   \end{equation}
   with at most
   \begin{equation}
@@ -302,7 +302,7 @@ Next, we consider the Sukhatme representation for generating order statistics. L
 The proof is provided in \Cref{sec:proof_sukhatme}.
 For $r=N$ (the worst case), the error term admits the asymptotics, as $N\to\infty$:
 \begin{equation}
-  \ve\left[1 +  2\sum_{i=1}^{\newjp{N}} \frac{1}{N - \newjp{i} + 1}\right] \sim \ve\ln(N),
+  \ve\left[1 +  2\sum_{i=1}^{N} \frac{1}{N - i + 1}\right] \sim \ve\ln(N),
 \end{equation}
 and the complexity term satisfies the following asymptotic results, as $\ve\to 0$:
 \begin{equation}
@@ -358,19 +358,19 @@ Namely, both networks optimize the common objective:
 where $p_{data}$ is the underlying distribution of the data and $p_\Zbf$ is the distribution of the latent variable, a distribution that is chosen to be easy to sample from, typically Gaussian or Uniform.
 Throughout this work, we use a uniformly distributed latent variable.
 More details on GANs and variants are given in \Cref{sec:background_gans}.
-Regarding architecture, we consider both networks to be simple \newjp{MLP models}.
+Regarding architecture, we consider both networks to be simple MLP models.
 
 \paragraph{Hyperparameters.} The hyperparameters to define in an implementation include the batch size, the latent dimension, the learning rate, the number of epochs, and of course the architectures of both neural networks (generator and discriminator).
 Moreover, a common practice is, at each epoch, to train the generator for \texttt{g\_step} steps and the discriminator for \texttt{d\_step}.
 The following choices are common practice: \texttt{g\_step=1} and \texttt{d\_steps=5}.
-We provide more details on \newjp{hyperparameters in \Cref{sec:hyperparameters}.}
+We provide more details on hyperparameters in \Cref{sec:hyperparameters}.
 
 \subsubsection{How accurate is a GAN at approximating order statistics?}
 
 % TODO [ADD] Add gmms for sanity checks
 
 In this section, we seek to find the limitations of the representation power of GANs for modeling order statistics.
-For this purpose, we choose a classic MLP architecture for the networks, illustrate that it can fit a classical benchmark dataset properly, and then assess visually up to which dimension \newjp{the model can} generate proper order statistics.
+For this purpose, we choose a classic MLP architecture for the networks, illustrate that it can fit a classical benchmark dataset properly, and then assess visually up to which dimension the model can generate proper order statistics.
 We also use this toy-study to discuss the special scaling used.
 \paragraph{Fitting a benchmark dataset.}
 A simple fitting test can be done on the banana-shaped distribution of \parencite{haario1999}, defined as follow: consider $(x_1, x_2)\sim \mathcal{N}(0, I)$ and: 
@@ -479,7 +479,7 @@ An illustration of the generated data cloud is provided in \Cref{fig:orderstats_
 In this section, we detail our benchmarking study of GAN architectures to model order statistics.
 We consider three baseline variants of GANs: vanilla GAN \parencite{goodfellow2014}, Wasserstein-GAN (WGAN) \parencite{arjovsky2017}, and WGAN with gradient penalty (WGAN-GP) \parencite{wei2018}.
 We evaluate each of the three models over different dimension settings.
-Once the best model is \newjp{selected}, we enhance it with an auxiliary regularization term that proxies the quality of the order-statistics property of the produced data points.
+Once the best model is selected, we enhance it with an auxiliary regularization term that proxies the quality of the order-statistics property of the produced data points.
 We then reevaluate the enhanced model against its corresponding base version.
 
 \subsubsection{Evaluating the best model out of the three base models}
@@ -494,22 +494,22 @@ For each variant of implementation, we perform $R=10$ replications and compute, 
 
 \paragraph{Metrics.}
 
-Among these six metrics, two are based on a Wasserstein criterion: the Wasserstein 1D (abbr. W1D) and Sliced-Wasserstein Distance (SWD)\newjp{.}
+Among these six metrics, two are based on a Wasserstein criterion: the Wasserstein 1D (abbr. W1D) and Sliced-Wasserstein Distance (SWD).
 Two are general dependence metrics: the Spearman's $\rho$ coefficient difference (Spearman) and the Absolute Kendall Error (AKE).
 Finally, two are specifically designed to assess the order-statistics property of the generated samples, the Sortedness and Softsortedness metric.
 % TODO Fix ref toward Appendix
-Precise definitions and background on the metrics are detailed in \newjp{\Cref{sec:metrics}}.
+Precise definitions and background on the metrics are detailed in \Cref{sec:metrics}.
 
 \paragraph{Sweeping with Optuna.}
 
 For exploring the best hyperparameters, we use Optuna \parencite{akiba2019}, a hyperparameter optimization framework.
-We use the default TPE sampler, which models \newjp{the} objective function using a tree-structured Parzen estimator.
+We use the default TPE sampler, which models the objective function using a tree-structured Parzen estimator.
 % TODO [TABLE] hyperparameter grid in main text
 We define a grid of hyperparameters over which we perform optimization.
-Details on hyperparameters are given in \newjp{\Cref{sec:hyperparameters}}.
+Details on hyperparameters are given in \Cref{sec:hyperparameters}.
 For each pair of model and dimension, we perform $200$ trials.
 The target metric for TPE sampling is the W1D criteria.
-We provide both the hyperparamter grid and the hyperparameters selected by the sweep in \newjp{\Cref{sec:hyperparameters}}.
+We provide both the hyperparamter grid and the hyperparameters selected by the sweep in \Cref{sec:hyperparameters}.
 
 \paragraph{Replications.} 
 
@@ -529,7 +529,7 @@ However, looking at the specifically designed Sortedness and Softsortedness metr
 Furthermost, for higher values of $d$ ($d \in \left\{20, 50\right\}$), performances of GAN is especially poor (values of Sortedness of $4.7\%$ and $0\%$ respectively), whereas values for WGAN stay higher ($51.9\%$ and $50.7\%$ respectively).
 Qualitatively, the pairwise projections in \Cref{fig:meanscale_mosaic,fig:meanscale_dim10} in \Cref{sec:addl-figs} exhibit tight alignment between real and generated samples across dimensions.
 For this reason, we interprete WGAN to be more performant at respecting the order statistics structure in higher dimensions.
-We \newjp{henceforth choose WGAN} as the best performing model and candidate for enhancement in the latter.
+We henceforth choose WGAN as the best performing model and candidate for enhancement in the latter.
 
 
 % 3×2 mosaic of metric tables (cleaner layout)
@@ -595,7 +595,7 @@ We define the following penalization term:
 % --- OSP Loss: LaTeX definition based on code implementation ---
 \begin{equation}
   \label{eq:penalization_osp}
-  \mathcal{L}_{\text{OSP}}(G) = \mathbb{E}_{z \sim p(z)} \left[ \frac{1}{d-1} \sum_{j=1}^{d-1} \left( \newjp{\max}\left\{ G(z)_j - G(z)_{j+1} + \varepsilon,\, 0 \right\} \right)^2 \right]
+  \mathcal{L}_{\text{OSP}}(G) = \mathbb{E}_{z \sim p(z)} \left[ \frac{1}{d-1} \sum_{j=1}^{d-1} \left( \max\left\{ G(z)_j - G(z)_{j+1} + \varepsilon,\, 0 \right\} \right)^2 \right]
 \end{equation}
 
 where $G(z) \in \mathbb{R}^d$ is the generator output, $\varepsilon > 0$ is a small offset constant, and the sum is over consecutive coordinate pairs.
@@ -1062,7 +1062,7 @@ Define the ReLU function as $\sigma^R(x) := \max(0, x)$. Then denote the triangu
   0,     & \text{otherwise}.
 \end{cases}
 \]
-Note that the triangular function can be approximated by a \newjp{ReLU} Neural Network with three neurons, see \parencite{allouche2025}.
+Note that the triangular function can be approximated by a ReLU Neural Network with three neurons, see \parencite{allouche2025}.
 We also have the following result:
 
 \begin{lemma}[\citet{allouche2025}, Lemma~8]
@@ -1135,7 +1135,7 @@ Back to~\eqref{eq:sum_eps_i}: choosing for $i\in[r], \ve>0$, $\ve_i = \frac{(N -
 
 Let's investigate the quality of approximation of the scheme in \Cref{alg:sampling_sukhatme}.
 For a starter, let's look into the quality of approximation of the function $F^{-1}:u\mapsto - \ln(1-u)$ with a neural network.
-For this sake, \newjp{consider $\ve \in [0, 1]$} and introduce the function :
+For this sake, consider $\ve \in [0, 1]$ and introduce the function :
 
 \begin{equation}  
   \tilde F^{-1}_\ve: \left\{
