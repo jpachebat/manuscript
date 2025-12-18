@@ -46,7 +46,7 @@
 \usepackage{setspace}
 \onehalfspacing
 
-% Line numbers for note-taking (remove for final version)
+% Line numbers for reviewer feedback
 \usepackage{lineno}
 \linenumbers
 
@@ -59,7 +59,7 @@
 \renewcommand{\headrulewidth}{0.4pt}
 
 % Other useful packages
-\usepackage{lipsum}  % For dummy text (remove in final version)
+% \usepackage{lipsum}  % Disabled - not needed
 \usepackage{enumitem}  % Better lists
 \setlist[itemize]{label=\textbullet}  % Central bullets instead of dashes
 \usepackage{xcolor}  % Colors
@@ -117,15 +117,14 @@
 \end{titlepage}
 \makeatother
 
-% Abstract
-\chapter*{Abstract}
-\addcontentsline{toc}{chapter}{Abstract}
-\input{chapters/abstract}
+% Abstract and Acknowledgments - commented out for reviewer submission
+% \chapter*{Abstract}
+% \addcontentsline{toc}{chapter}{Abstract}
+% \input{chapters/abstract}
 
-% Acknowledgments (optional)
-\chapter*{Acknowledgments}
-\addcontentsline{toc}{chapter}{Acknowledgments}
-\input{chapters/acknowledgments}
+% \chapter*{Acknowledgments}
+% \addcontentsline{toc}{chapter}{Acknowledgments}
+% \input{chapters/acknowledgments}
 
 % Table of contents
 \tableofcontents
